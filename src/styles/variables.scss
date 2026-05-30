@@ -1,0 +1,64 @@
+$font-family-base: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+
+$font-size-xs: 0.75rem;
+$font-size-sm: 0.875rem;
+$font-size-base: 1rem;
+$font-size-lg: 1.125rem;
+$font-size-xl: 1.25rem;
+$font-size-2xl: 1.5rem;
+$font-size-3xl: 1.875rem;
+
+$color-primary: #9b8ed4;
+$color-primary-light: #c4b8e8;
+$color-primary-dark: #7a6cb8;
+
+$color-secondary: #f5c6d6;
+$color-secondary-light: #f8dce8;
+$color-secondary-dark: #e8a4bc;
+
+$color-success: #a8d5ba;
+$color-warning: #ffd5a8;
+$color-danger: #f5a8a8;
+$color-info: #a8d4f5;
+
+$color-bg-base: #faf8fc;
+$color-bg-card: #ffffff;
+$color-bg-hover: #f5f0fa;
+
+$color-text-primary: #4a4a4a;
+$color-text-secondary: #8a8a8a;
+$color-text-muted: #b0b0b0;
+
+$color-border: #e8e0f0;
+$color-border-light: #f0e8f8;
+
+$category-work: #9b8ed4;
+$category-life: #f5c6d6;
+$category-health: #a8d5ba;
+$category-social: #ffd5a8;
+
+$border-radius-sm: 8px;
+$border-radius-base: 12px;
+$border-radius-lg: 16px;
+$border-radius-xl: 20px;
+
+$shadow-sm: 0 2px 8px rgba(155, 142, 212, 0.1);
+$shadow-base: 0 4px 16px rgba(155, 142, 212, 0.15);
+$shadow-lg: 0 8px 32px rgba(155, 142, 212, 0.2);
+
+$spacing-xs: 0.25rem;
+$spacing-sm: 0.5rem;
+$spacing-base: 0.75rem;
+$spacing-md: 1rem;
+$spacing-lg: 1.5rem;
+$spacing-xl: 2rem;
+$spacing-2xl: 3rem;
+
+$transition-fast: 150ms ease;
+$transition-base: 300ms ease;
+$transition-slow: 500ms ease;
+
+$zindex-dropdown: 100;
+$zindex-modal: 200;
+$zindex-tooltip: 300;
+$zindex-voice: 400;
