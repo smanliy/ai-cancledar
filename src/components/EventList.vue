@@ -1,7 +1,9 @@
 <script setup>
 import { computed } from "vue";
+import { useRouter } from "vue-router";
 import { useEventStore } from "../stores/eventStore";
 
+const router = useRouter();
 const eventStore = useEventStore();
 
 const selectedDateEvents = computed(() => eventStore.selectedDateEvents);
@@ -14,6 +16,7 @@ function formatTime(date) {
 
 function handleEventClick(event) {
   eventStore.setSelectedDate(new Date(event.startTime));
+  router.push(`/event/${event.id}`);
 }
 
 function handleDeleteEvent(eventId) {
@@ -83,30 +86,70 @@ const categoryColors = {
 .event-list {
   margin-top: $spacing-xl;
   padding-top: $spacing-lg;
-  border-top: 1px solid $color-border-light;
+  border-top: 3px dashed #d4a574;
+  position: relative;
+
+  &::before {
+    content: "";
+    position: absolute;
+    top: -0.5rem;
+    left: 1rem;
+    right: 1rem;
+    height: 2px;
+    background: repeating-linear-gradient(
+      90deg,
+      #d4a574 0px,
+      #d4a574 4px,
+      transparent 4px,
+      transparent 12px
+    );
+  }
 }
 
 .event-list-title {
-  font-size: $font-size-lg;
-  font-weight: 600;
-  color: $color-text-primary;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #8b6914;
   margin: 0 0 $spacing-md 0;
+  font-family: "Comic Sans MS", cursive, sans-serif;
+  text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.05);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+
+  &::before {
+    content: "📝";
+    font-size: 1.1rem;
+  }
 }
 
 .empty-state {
   text-align: center;
   padding: $spacing-2xl;
-  color: $color-text-muted;
+  color: #b0b0b0;
 
   .empty-icon {
-    font-size: 3rem;
+    font-size: 3.5rem;
     display: block;
     margin-bottom: $spacing-md;
+    animation: bounce 2s infinite;
   }
 
   p {
     margin: 0;
     font-size: $font-size-base;
+    font-family: "Comic Sans MS", cursive, sans-serif;
+    color: #8b7355;
+  }
+}
+
+@keyframes bounce {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
   }
 }
 
@@ -117,20 +160,22 @@ const categoryColors = {
 }
 
 .event-card {
-  background: $color-bg-card;
-  border-radius: $border-radius-base;
-  border-left: 4px solid $color-primary;
+  background: #fffef0;
+  border-radius: 8px;
+  border-left: 5px solid #d4a574;
   padding: $spacing-md;
-  box-shadow: $shadow-sm;
+  box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.08);
   cursor: pointer;
   transition: all $transition-base;
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
+  border: 2px solid #d4a574;
 
   &:hover {
-    box-shadow: $shadow-base;
+    box-shadow: 4px 4px 12px rgba(0, 0, 0, 0.12);
     transform: translateY(-2px);
+    background: #fff9e6;
   }
 }
 
@@ -140,51 +185,68 @@ const categoryColors = {
 
 .event-category {
   display: inline-block;
-  font-size: $font-size-xs;
-  padding: 2px 8px;
-  border-radius: 10px;
-  color: $color-text-primary;
+  font-size: 0.7rem;
+  padding: 3px 10px;
+  border-radius: 12px;
+  color: white;
   margin-bottom: $spacing-xs;
+  font-family: "Comic Sans MS", cursive, sans-serif;
+  box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.15);
 }
 
 .event-title {
-  font-size: $font-size-base;
-  font-weight: 600;
-  color: $color-text-primary;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #5d4e37;
   margin: $spacing-xs 0;
+  font-family: "Comic Sans MS", cursive, sans-serif;
+  text-shadow: 0.5px 0.5px 0 rgba(0, 0, 0, 0.1);
 }
 
 .event-time {
-  font-size: $font-size-sm;
-  color: $color-text-secondary;
+  font-size: 0.85rem;
+  color: #8b7355;
   margin: 0;
+  font-family: "Comic Sans MS", cursive, sans-serif;
+
+  &::before {
+    content: "🕐 ";
+  }
 }
 
 .event-note {
-  font-size: $font-size-sm;
-  color: $color-text-muted;
+  font-size: 0.85rem;
+  color: #a09070;
   margin: $spacing-xs 0 0 0;
+  font-style: italic;
+
+  &::before {
+    content: "💭 ";
+  }
 }
 
 .btn-delete {
-  width: 1.5rem;
-  height: 1.5rem;
-  border: none;
-  background: $color-bg-hover;
+  width: 1.7rem;
+  height: 1.7rem;
+  border: 2px solid #ff6b6b;
+  background: white;
   border-radius: 50%;
-  color: $color-text-muted;
-  font-size: $font-size-lg;
+  color: #ff6b6b;
+  font-size: 1.2rem;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   transition: all $transition-fast;
   padding: 0;
-  line-height: 1;
+  line-height: 0.8;
+  box-shadow: 1px 1px 4px rgba(255, 107, 107, 0.3);
 
   &:hover {
-    background: $color-danger;
+    background: #ff6b6b;
     color: white;
+    transform: scale(1.1);
+    box-shadow: 2px 2px 8px rgba(255, 107, 107, 0.4);
   }
 }
 </style>

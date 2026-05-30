@@ -10,6 +10,7 @@ const eventStore = useEventStore();
 const isFlipping = ref(false);
 const flipDirection = ref("next");
 const showVoicePanel = ref(false);
+const showYearPicker = ref(false);
 
 const currentYear = computed(() => eventStore.currentDate.getFullYear());
 const currentMonth = computed(() => eventStore.currentDate.getMonth());
@@ -31,6 +32,15 @@ const monthNames = [
 
 const coilCount = 11;
 
+const years = computed(() => {
+  const current = currentYear.value;
+  const yearList = [];
+  for (let i = current - 5; i <= current + 5; i++) {
+    yearList.push(i);
+  }
+  return yearList;
+});
+
 function handlePrevMonth() {
   if (isFlipping.value) return;
   flipDirection.value = "prev";
@@ -39,8 +49,8 @@ function handlePrevMonth() {
     eventStore.goToPrevMonth();
     setTimeout(() => {
       isFlipping.value = false;
-    }, 50);
-  }, 300);
+    }, 100);
+  }, 600);
 }
 
 function handleNextMonth() {
@@ -51,8 +61,19 @@ function handleNextMonth() {
     eventStore.goToNextMonth();
     setTimeout(() => {
       isFlipping.value = false;
-    }, 50);
-  }, 300);
+    }, 100);
+  }, 600);
+}
+
+function handleYearClick() {
+  showYearPicker.value = !showYearPicker.value;
+}
+
+function selectYear(year) {
+  const newDate = new Date(eventStore.currentDate);
+  newDate.setFullYear(year);
+  eventStore.setCurrentDate(newDate);
+  showYearPicker.value = false;
 }
 
 function handleVoiceCommand(command) {
@@ -78,12 +99,30 @@ function handleVoiceCommand(command) {
       <div class="calendar-body">
         <div class="calendar-header">
           <h1 class="calendar-title">
-            {{ currentYear }}年 {{ monthNames[currentMonth] }}
+            <span class="year-selector" @click="handleYearClick">
+              {{ currentYear }}年
+              <span class="year-arrow">{{ showYearPicker ? "▲" : "▼" }}</span>
+            </span>
+            {{ monthNames[currentMonth] }}
           </h1>
           <button class="btn-settings" @click="$router.push('/settings')">
             <span class="icon">⚙️</span>
           </button>
         </div>
+
+        <Transition name="fade">
+          <div v-if="showYearPicker" class="year-picker">
+            <div
+              v-for="year in years"
+              :key="year"
+              class="year-item"
+              :class="{ active: year === currentYear }"
+              @click="selectYear(year)"
+            >
+              {{ year }}年
+            </div>
+          </div>
+        </Transition>
 
         <CalendarMonth />
       </div>
@@ -109,6 +148,30 @@ function handleVoiceCommand(command) {
           <div class="pencil-tip"></div>
           <div class="pencil-eraser"></div>
         </div>
+      </div>
+
+      <div v-if="isFlipping" class="page-curl-container">
+        <div
+          class="page-curl page-curl-1"
+          :class="{
+            'flip-next': flipDirection === 'next',
+            'flip-prev': flipDirection === 'prev',
+          }"
+        ></div>
+        <div
+          class="page-curl page-curl-2"
+          :class="{
+            'flip-next': flipDirection === 'next',
+            'flip-prev': flipDirection === 'prev',
+          }"
+        ></div>
+        <div
+          class="page-curl page-curl-3"
+          :class="{
+            'flip-next': flipDirection === 'next',
+            'flip-prev': flipDirection === 'prev',
+          }"
+        ></div>
       </div>
     </div>
 
@@ -229,6 +292,67 @@ function handleVoiceCommand(command) {
   margin: 0;
   font-family: "Comic Sans MS", cursive, sans-serif;
   text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.1);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.year-selector {
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+  border-radius: 6px;
+  transition: all $transition-fast;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+
+  &:hover {
+    background: rgba(212, 165, 116, 0.3);
+  }
+}
+
+.year-arrow {
+  font-size: 0.6rem;
+  color: #c4956a;
+  transition: transform $transition-fast;
+}
+
+.year-picker {
+  position: absolute;
+  top: 100%;
+  left: 1rem;
+  right: 1rem;
+  background: #fffef0;
+  border: 3px solid #d4a574;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  padding: 0.5rem;
+  z-index: 100;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 0.25rem;
+}
+
+.year-item {
+  padding: 0.5rem;
+  text-align: center;
+  border-radius: 6px;
+  cursor: pointer;
+  font-family: "Comic Sans MS", cursive, sans-serif;
+  font-size: 1rem;
+  color: #5d4e37;
+  transition: all $transition-fast;
+
+  &:hover {
+    background: #ffe4b5;
+    transform: scale(1.05);
+  }
+
+  &.active {
+    background: #ffc080;
+    font-weight: 700;
+    color: #8b4513;
+  }
 }
 
 .btn-settings {
@@ -519,5 +643,221 @@ function handleVoiceCommand(command) {
     transform: rotateY(0deg) translateX(0);
     opacity: 1;
   }
+}
+
+.page-curl-container {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 120px;
+  height: 120px;
+  pointer-events: none;
+  z-index: 50;
+}
+
+.page-curl {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  transform-origin: bottom right;
+}
+
+.page-curl-1 {
+  z-index: 53;
+  animation-delay: 0s;
+}
+
+.page-curl-2 {
+  z-index: 52;
+  animation-delay: 0.08s;
+  opacity: 0.8;
+  transform: scale(0.95);
+}
+
+.page-curl-3 {
+  z-index: 51;
+  animation-delay: 0.16s;
+  opacity: 0.6;
+  transform: scale(0.9);
+}
+
+.page-curl.flip-next {
+  animation: curlRight 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.page-curl.flip-prev {
+  animation: curlLeft 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+@keyframes curlRight {
+  0% {
+    transform: rotate(0deg) scale(0.8) translateY(0);
+    opacity: 0;
+  }
+  30% {
+    transform: rotate(-10deg) scale(0.9) translateY(-5px);
+    opacity: 0.9;
+  }
+  60% {
+    transform: rotate(-30deg) scale(1) translateY(-15px);
+    opacity: 0.8;
+  }
+  100% {
+    transform: rotate(-60deg) scale(1.1) translateY(-30px);
+    opacity: 0;
+  }
+}
+
+@keyframes curlLeft {
+  0% {
+    transform: rotate(0deg) scale(0.8) translateY(0);
+    opacity: 0;
+  }
+  30% {
+    transform: rotate(10deg) scale(0.9) translateY(-5px);
+    opacity: 0.9;
+  }
+  60% {
+    transform: rotate(30deg) scale(1) translateY(-15px);
+    opacity: 0.8;
+  }
+  100% {
+    transform: rotate(60deg) scale(1.1) translateY(-30px);
+    opacity: 0;
+  }
+}
+
+.page-curl::before {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 254, 240, 0.95) 0%,
+    rgba(245, 240, 220, 0.9) 30%,
+    rgba(200, 180, 150, 0.6) 70%,
+    rgba(150, 130, 100, 0.3) 100%
+  );
+  border-radius: 0 0 12px 0;
+  box-shadow:
+    -4px -4px 15px rgba(0, 0, 0, 0.2),
+    -8px -8px 30px rgba(0, 0, 0, 0.1),
+    inset 3px 3px 6px rgba(255, 255, 255, 0.9),
+    inset -2px -2px 4px rgba(0, 0, 0, 0.05);
+  border: 3px solid #c4956a;
+  border-top: 2px solid #d4a574;
+  border-left: 2px solid #d4a574;
+}
+
+.page-curl::after {
+  content: "";
+  position: absolute;
+  bottom: 3px;
+  right: 3px;
+  width: calc(100% - 6px);
+  height: calc(100% - 6px);
+  background: linear-gradient(
+    135deg,
+    rgba(255, 254, 240, 0.9) 0%,
+    rgba(240, 235, 215, 0.7) 50%,
+    rgba(200, 185, 160, 0.4) 100%
+  );
+  border-radius: 0 0 10px 0;
+}
+
+.page-curl-inner {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 100%;
+  height: 100%;
+  transform-origin: bottom right;
+}
+
+.page-curl-inner::before {
+  content: "";
+  position: absolute;
+  bottom: 6px;
+  right: 6px;
+  width: calc(100% - 12px);
+  height: calc(100% - 12px);
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.8) 0%,
+    rgba(245, 240, 225, 0.5) 100%
+  );
+  border-radius: 0 0 8px 0;
+  box-shadow: inset 2px 2px 4px rgba(255, 255, 255, 0.6);
+}
+
+.page-curl-shadow {
+  position: absolute;
+  bottom: -5px;
+  right: -5px;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(
+    ellipse at center,
+    rgba(0, 0, 0, 0.3) 0%,
+    rgba(0, 0, 0, 0.1) 50%,
+    transparent 70%
+  );
+  border-radius: 50%;
+  transform: scale(1.5);
+  opacity: 0;
+}
+
+.flip-next .page-curl-shadow {
+  animation: shadowPulse 0.8s ease-in-out;
+}
+
+.flip-prev .page-curl-shadow {
+  animation: shadowPulseLeft 0.8s ease-in-out;
+}
+
+@keyframes shadowPulse {
+  0% {
+    opacity: 0;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.6;
+    transform: scale(1.5);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(2);
+  }
+}
+
+@keyframes shadowPulseLeft {
+  0% {
+    opacity: 0;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.6;
+    transform: scale(1.5);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(2);
+  }
+}
+
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.2s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
 }
 </style>
