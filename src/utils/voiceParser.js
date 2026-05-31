@@ -169,6 +169,129 @@ function extractAbsoluteTime(text) {
   return null
 }
 
+function cleanTitle(text) {
+  let cleaned = text;
+
+  const chineseNumbers = '[零一二三四五六七八九十百千万]';
+
+  const timePatterns = [
+    new RegExp(`提前${chineseNumbers}+分钟提醒`, 'gi'),
+    new RegExp(`提前${chineseNumbers}+分提醒`, 'gi'),
+    new RegExp(`提前${chineseNumbers}+小时提醒`, 'gi'),
+    /提前半小时提醒/gi,
+    /提前一小时提醒/gi,
+    new RegExp(`${chineseNumbers}+分钟前提醒`, 'gi'),
+    new RegExp(`${chineseNumbers}+分钟提醒`, 'gi'),
+    /半小时提醒/gi,
+    new RegExp(`${chineseNumbers}+分钟(?:后|以后)?`, 'gi'),
+    /\d+分钟(?:后|以后)?/gi,
+    /分钟(?:后|以后)/gi,
+    new RegExp(`${chineseNumbers}+分(?:钟)?(?:后|以后)?`, 'gi'),
+    /\d+分(?:钟)?(?:后|以后)?/gi,
+    /分(?:钟)?(?:后|以后)/gi,
+    /半小时(?:后|以后)?/gi,
+    new RegExp(`${chineseNumbers}+小时(?:后|以后)`, 'gi'),
+    /\d+小时(?:后|以后)/gi,
+    /小时(?:后|以后)/gi,
+    new RegExp(`${chineseNumbers}+个小时(?:后|以后)?`, 'gi'),
+    /\d+个小时(?:后|以后)?/gi,
+    /个小时(?:后|以后)/gi,
+    new RegExp(`${chineseNumbers}+天(?:后|以后)?`, 'gi'),
+    /\d+天(?:后|以后)?/gi,
+    /天(?:后|以后)/gi,
+    new RegExp(`${chineseNumbers}+天后`, 'gi'),
+    /\d+天后/gi,
+    /大后天/gi,
+    /前天/gi,
+    /昨天/gi,
+    /今天/gi,
+    /明天/gi,
+    /后天/gi,
+    new RegExp(`早上${chineseNumbers}+点`, 'gi'),
+    /早上\d+点/gi,
+    /早上/gi,
+    new RegExp(`早晨${chineseNumbers}+点`, 'gi'),
+    /早晨\d+点/gi,
+    /早晨/gi,
+    new RegExp(`上午${chineseNumbers}+点`, 'gi'),
+    /上午\d+点/gi,
+    /上午/gi,
+    new RegExp(`中午${chineseNumbers}+点`, 'gi'),
+    /中午\d+点/gi,
+    /中午/gi,
+    new RegExp(`下午${chineseNumbers}+点`, 'gi'),
+    /下午\d+点/gi,
+    /下午/gi,
+    new RegExp(`傍晚${chineseNumbers}+点`, 'gi'),
+    /傍晚\d+点/gi,
+    /傍晚/gi,
+    new RegExp(`晚上${chineseNumbers}+点`, 'gi'),
+    /晚上\d+点/gi,
+    /晚上/gi,
+    new RegExp(`夜里${chineseNumbers}+点`, 'gi'),
+    /夜里\d+点/gi,
+    /夜里/gi,
+    new RegExp(`深夜${chineseNumbers}+点`, 'gi'),
+    /深夜\d+点/gi,
+    /深夜/gi,
+    new RegExp(`凌晨${chineseNumbers}+点`, 'gi'),
+    /凌晨\d+点/gi,
+    /凌晨/gi,
+    new RegExp(`${chineseNumbers}+点${chineseNumbers}+分`, 'gi'),
+    /\d+点\d+分/gi,
+    new RegExp(`${chineseNumbers}+点半`, 'gi'),
+    /\d+点半/gi,
+    new RegExp(`${chineseNumbers}+点`, 'gi'),
+    /\d+点/gi,
+    /点/gi,
+    /本周/gi,
+    /下周/gi,
+    new RegExp(`${chineseNumbers}+月${chineseNumbers}+日`, 'gi'),
+    /\d+月\d+日/gi,
+    new RegExp(`${chineseNumbers}+月`, 'gi'),
+    /\d+月/gi,
+    /月/gi,
+    new RegExp(`${chineseNumbers}+号`, 'gi'),
+    /\d+号/gi,
+    /号/gi,
+    new RegExp(`${chineseNumbers}+日`, 'gi'),
+    /\d+日/gi,
+    /日/gi
+  ];
+
+  for (const pattern of timePatterns) {
+    cleaned = cleaned.replace(pattern, '');
+  }
+
+  const fuzzyTimePatterns = [
+    /一会/gi, /一会儿/gi, /过一会/gi, /过一会儿/gi, /马上/gi, /立刻/gi,
+    /马上就/gi, /稍后/gi, /等会儿/gi, /等一下/gi, /不久/gi, /很快/gi
+  ];
+
+  for (const pattern of fuzzyTimePatterns) {
+    cleaned = cleaned.replace(pattern, '');
+  }
+
+  const actionWords = [
+    '提醒我', '提醒', '帮我记', '我要', '安排', '帮我',
+    '设置提醒', '新建', '创建', '添加', '记一下', '新增'
+  ];
+
+  for (const word of actionWords) {
+    cleaned = cleaned.replace(new RegExp(word, 'gi'), '');
+  }
+
+  cleaned = cleaned.replace(/在|于|到|把|要/g, ' ');
+
+  cleaned = cleaned.replace(/[，,。！!？?、；;：:]/g, '');
+
+  cleaned = cleaned.replace(/\s+/g, ' ').trim();
+
+  cleaned = cleaned.replace(/^[帮请让]/g, '').trim();
+
+  return cleaned || '新事件';
+}
+
 export function parseVoiceCommand(text) {
   const result = {
     raw: text,
@@ -214,49 +337,37 @@ export function parseVoiceCommand(text) {
     result.entities.date = 'relative'
     result.entities.relativeMinutes = fuzzyTime.minutes
     result.confidence = 0.9
-    return result
-  }
-
-  const relativeTime = extractRelativeTime(text)
-  if (relativeTime) {
-    result.entities.date = 'relative'
-    result.entities.time = {
-      unit: relativeTime.unit,
-      value: relativeTime.value
-    }
-    result.confidence = 0.85
-    return result
-  }
-
-  const absoluteTime = extractAbsoluteTime(text)
-  if (absoluteTime) {
-    result.entities.date = absoluteTime.type
-    if (absoluteTime.hour !== undefined) {
+  } else {
+    const relativeTime = extractRelativeTime(text)
+    if (relativeTime) {
+      result.entities.date = 'relative'
       result.entities.time = {
-        hour: absoluteTime.hour,
-        minute: absoluteTime.minute || 0
+        unit: relativeTime.unit,
+        value: relativeTime.value
+      }
+      result.confidence = 0.85
+    } else {
+      const absoluteTime = extractAbsoluteTime(text)
+      if (absoluteTime) {
+        result.entities.date = absoluteTime.type
+        if (absoluteTime.hour !== undefined) {
+          result.entities.time = {
+            hour: absoluteTime.hour,
+            minute: absoluteTime.minute || 0
+          }
+        }
+        if (absoluteTime.period) {
+          result.entities.period = absoluteTime.period
+        }
+        if (absoluteTime.dayOfWeek) {
+          result.entities.dayOfWeek = absoluteTime.dayOfWeek
+        }
+        result.confidence = 0.95
       }
     }
-    if (absoluteTime.period) {
-      result.entities.period = absoluteTime.period
-    }
-    if (absoluteTime.dayOfWeek) {
-      result.entities.dayOfWeek = absoluteTime.dayOfWeek
-    }
-    result.confidence = 0.95
   }
 
-  const titleMatch = text.match(/([^于到在把要安排提醒].*?)(?:在|于|提醒|安排|设置|$)/)
-  if (titleMatch) {
-    result.entities.title = titleMatch[1].trim().replace(/[，,。！!？?]$/, '')
-  }
-
-  if (!result.entities.title) {
-    const titleMatch2 = text.match(/(提醒我|帮我记|我要).*?(做|参加|去|有|开始)(.*)/)
-    if (titleMatch2 && titleMatch2[3]) {
-      result.entities.title = titleMatch2[3].trim().replace(/[，,。！!？?]$/, '')
-    }
-  }
+  result.entities.title = cleanTitle(text);
 
   return result
 }
@@ -270,7 +381,7 @@ export function resolveEventFromCommand(command, baseDate = new Date()) {
     endTime: new Date(now),
     isAllDay: false,
     category: command.entities.category || 'life',
-    reminder: command.entities.reminderMinutes || 5,
+    reminder: command.entities.reminderMinutes || 30,
     repeat: 'none',
     note: ''
   }
