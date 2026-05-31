@@ -22,6 +22,8 @@ const isListening = ref(false);
 const transcript = ref("");
 const feedback = ref("");
 const recognition = ref(null);
+const isEditable = ref(false);
+const finalTranscript = ref("");
 
 function initRecognition() {
   if ("webkitSpeechRecognition" in window || "SpeechRecognition" in window) {
@@ -36,7 +38,9 @@ function initRecognition() {
       const result = event.results[event.results.length - 1];
       transcript.value = result[0].transcript;
       if (result.isFinal) {
-        processVoiceInput(transcript.value);
+        finalTranscript.value = transcript.value;
+        isEditable.value = true;
+        feedback.value = "点击下方按钮确认或编辑文字";
       }
     };
 
@@ -96,6 +100,17 @@ async function processVoiceInput(text) {
   }
 
   emit("command", command);
+  isEditable.value = false;
+}
+
+function confirmInput() {
+  if (finalTranscript.value.trim()) {
+    processVoiceInput(finalTranscript.value);
+  }
+}
+
+function editInput() {
+  feedback.value = "请编辑文字后点击确认";
 }
 
 function handleClose() {
@@ -128,7 +143,17 @@ function speakFeedback() {
           </div>
 
           <div class="transcript-box">
-            <p v-if="transcript" class="transcript-text">{{ transcript }}</p>
+            <input
+              v-if="isEditable && finalTranscript"
+              v-model="finalTranscript"
+              type="text"
+              class="transcript-input"
+              placeholder="请编辑文字..."
+              @focus="editInput"
+            />
+            <p v-else-if="transcript" class="transcript-text">
+              {{ transcript }}
+            </p>
             <p v-else class="transcript-placeholder">请说话...</p>
           </div>
 
@@ -140,7 +165,7 @@ function speakFeedback() {
           </div>
         </div>
 
-        <div class="voice-controls">
+        <div class="voice-controls" v-if="!isEditable">
           <button
             class="btn-mic"
             :class="{ listening: isListening }"
@@ -152,6 +177,15 @@ function speakFeedback() {
             <span class="mic-text">{{
               isListening ? "松开结束" : "按住说话"
             }}</span>
+          </button>
+        </div>
+
+        <div class="voice-controls" v-else>
+          <button class="btn-action btn-confirm" @click="confirmInput">
+            <span>✓ 确认</span>
+          </button>
+          <button class="btn-action btn-record" @click="startListening">
+            <span>🔄 重新录制</span>
           </button>
         </div>
 
@@ -388,6 +422,69 @@ function speakFeedback() {
   50% {
     transform: scale(1.05);
   }
+}
+
+.transcript-input {
+  width: 100%;
+  padding: $spacing-md;
+  border: 2px solid $color-primary;
+  border-radius: $border-radius-base;
+  font-size: $font-size-base;
+  color: $color-text-primary;
+  background: white;
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color $transition-base;
+
+  &:focus {
+    border-color: $color-primary-dark;
+    box-shadow: 0 0 0 3px rgba($color-primary, 0.1);
+  }
+}
+
+.btn-action {
+  padding: $spacing-sm $spacing-lg;
+  border: none;
+  border-radius: $border-radius-lg;
+  font-size: $font-size-base;
+  cursor: pointer;
+  transition: all $transition-base;
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: $shadow-base;
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+}
+
+.btn-confirm {
+  background: linear-gradient(
+    135deg,
+    $color-success 0%,
+    darken($color-success, 15%) 100%
+  );
+  color: white;
+  flex: 1;
+}
+
+.btn-record {
+  background: linear-gradient(
+    135deg,
+    $color-secondary 0%,
+    $color-secondary-dark 100%
+  );
+  color: white;
+  flex: 1;
+}
+
+.voice-controls {
+  gap: $spacing-md;
 }
 
 .voice-hints {
