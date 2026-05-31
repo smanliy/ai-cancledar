@@ -1,38 +1,327 @@
-# canclender
+# AI智能日历
 
-This template should help get you started developing with Vue 3 in Vite.
+一个可爱风格的智能日历应用，支持语音识别、事件管理、邮件提醒等功能。
 
-## Recommended IDE Setup
+## 项目简介
 
-[VS Code](https://code.visualstudio.com/) + [Vue (Official)](https://marketplace.visualstudio.com/items?itemName=Vue.volar) (and disable Vetur).
+本项目是一个基于Vue 3开发的智能日历应用，采用可爱风设计风格，提供语音识别、事件管理、邮件提醒等丰富功能。所有数据通过后端服务器存储，确保数据持久化。
 
-## Recommended Browser Setup
+## 技术栈
 
-- Chromium-based browsers (Chrome, Edge, Brave, etc.):
-  - [Vue.js devtools](https://chromewebstore.google.com/detail/vuejs-devtools/nhdogjmejiglipccpnnnanhbledajbpd)
-  - [Turn on Custom Object Formatter in Chrome DevTools](http://bit.ly/object-formatters)
-- Firefox:
-  - [Vue.js devtools](https://addons.mozilla.org/en-US/firefox/addon/vue-js-devtools/)
-  - [Turn on Custom Object Formatter in Firefox DevTools](https://fxdx.dev/firefox-devtools-custom-object-formatters/)
+### 前端
+- **Vue 3** - 渐进式JavaScript框架
+- **Vite** - 下一代前端构建工具
+- **Pinia** - Vue状态管理库
+- **SCSS** - CSS预处理器
+- **Vue Router** - Vue.js官方路由
 
-## Customize configuration
+### 后端
+- **Express** - Node.js Web框架
+- **Nodemailer** - Node.js邮件发送模块
+- **node-schedule** - Node.js定时任务调度器
 
-See [Vite Configuration Reference](https://vite.dev/config/).
+## 功能特性
 
-## Project Setup
+### 1. 日历显示
+- 当前日期高亮显示（动态跟随北京时间）
+- 过去日期灰化且不可设置任务
+- 仅显示当月日期，不显示其他月份日期
+- 年份可切换（点击年份按钮选择）
+- 月份可切换（点击翻页按钮）
 
-```sh
+### 2. 语音识别
+- 支持语音输入添加事件
+- 自动识别时间、事件内容、类别
+- 支持相对时间表达（如"五分钟后"、"一个小时后"）
+- 支持中文数字识别（如"五分钟"、"十分钟"）
+- 语音输入后可编辑文字内容
+- 自动过滤模糊词语（如"提醒我"、"帮我记"）
+
+### 3. 事件管理
+- 添加事件（语音输入或手动添加）
+- 编辑事件（点击事件卡片进入详情页）
+- 删除事件（详情页或事件列表）
+- 事件分类（工作、生活、健康、社交）
+- 事件备注
+- 全天事件支持
+- 重复事件支持
+
+### 4. 邮件提醒
+- 设置提醒邮箱
+- 事件开始前30分钟自动发送提醒邮件
+- 邮件内容包含事件详情
+- 支持邮件分享邀请
+
+### 5. 数据持久化
+- 所有数据存储在后端服务器
+- 刷新页面数据不丢失
+- 支持多用户数据隔离
+
+## 安装和运行
+
+### 前端安装
+
+```bash
+# 安装依赖
 npm install
+
+# 启动开发服务器
+npm run dev
+
+# 构建生产版本
+npm run build
+
+# 预览生产版本
+npm run preview
 ```
 
-### Compile and Hot-Reload for Development
+### 后端安装
 
-```sh
+```bash
+# 进入服务器目录
+cd server
+
+# 安装依赖
+npm install
+
+# 配置环境变量
+# 创建 .env 文件，添加以下内容：
+EMAIL_USER=your_email@gmail.com
+EMAIL_PASS=your_email_password
+
+# 启动服务器
+node server.js
+```
+
+### 环境要求
+
+- Node.js: ^20.19.0 || >=22.12.0
+- npm: 最新版本
+- 浏览器: Chrome、Edge、Firefox等现代浏览器
+
+## 使用方法
+
+### 1. 启动应用
+
+**步骤1：启动后端服务器**
+```bash
+cd server
+node server.js
+```
+服务器将在 `http://localhost:3001` 运行
+
+**步骤2：启动前端应用**
+```bash
 npm run dev
 ```
+前端将在 `http://localhost:5173` 运行
 
-### Compile and Minify for Production
+**步骤3：访问应用**
+在浏览器中打开 `http://localhost:5173`
 
-```sh
-npm run build
+### 2. 日历操作
+
+**切换年份**
+- 点击左上角的年份按钮（紫色渐变按钮）
+- 在弹出的年份选择器中选择目标年份
+
+**切换月份**
+- 点击日历下方的翻页按钮（左箭头/右箭头）
+
+**选择日期**
+- 点击任意日期单元格
+- 当前日期及未来日期可点击
+- 过去日期灰化不可点击
+
+### 3. 语音添加事件
+
+**步骤1：打开语音助手**
+- 点击日历下方的麦克风按钮
+
+**步骤2：开始语音输入**
+- 点击"开始录音"按钮
+- 对着麦克风说出事件内容
+
+**示例语音命令**
+- "五分钟后提醒我开会" → 创建5分钟后的"开会"事件
+- "一个小时后洗澡" → 创建1小时后的"洗澡"事件
+- "明天早上8点起床" → 创建明天8点的"起床"事件
+- "后天下午3点开会" → 创建后天15点的"开会"事件
+
+**步骤3：编辑和确认**
+- 语音识别后显示文字内容
+- 可点击编辑按钮修改文字
+- 点击确认按钮创建事件
+
+### 4. 事件管理
+
+**查看事件**
+- 点击日期单元格查看该日事件列表
+- 事件列表显示在日历下方
+
+**查看事件详情**
+- 点击事件卡片进入详情页
+- 详情页显示完整事件信息
+
+**编辑事件**
+- 在详情页点击"修改提醒邮箱"按钮
+- 输入新的邮箱地址并保存
+
+**删除事件**
+- 在详情页点击"删除"按钮
+- 在事件列表点击删除按钮（×）
+
+### 5. 邮件提醒
+
+**设置提醒邮箱**
+- 在事件详情页点击"设置提醒邮箱"
+- 输入邮箱地址并保存
+- 事件开始前30分钟将收到提醒邮件
+
+**邮件分享邀请**
+- 在事件详情页点击"邮件分享邀请"
+- 输入收件人邮箱地址
+- 系统将打开邮件客户端发送邀请
+
+### 6. 语音识别支持的时间表达
+
+**相对时间**
+- "五分钟后" / "5分钟后"
+- "一个小时后" / "1小时后"
+- "半小时后"
+- "明天" / "后天" / "大后天"
+
+**绝对时间**
+- "早上8点" / "上午9点"
+- "中午12点" / "下午3点"
+- "晚上8点" / "夜里10点"
+- "凌晨2点"
+
+**时间组合**
+- "明天早上8点"
+- "后天下午3点"
+- "一个小时后开会"
+
+## 项目结构
+
 ```
+canclender/
+├── src/                    # 前端源码
+│   ├── components/         # Vue组件
+│   │   ├── CalendarHeader.vue    # 日历头部（星期标题）
+│   │   ├── CalendarMonth.vue     # 日历主体
+│   │   ├── EventList.vue         # 事件列表
+│   │   ├── VoiceAssistant.vue    # 语音助手
+│   │   └── PageFlipButton.vue    # 翻页按钮
+│   ├── views/              # 页面视图
+│   │   ├── CalendarView.vue      # 日历主页面
+│   │   └── EventDetail.vue       # 事件详情页
+│   ├── stores/             # Pinia状态管理
+│   │   └── eventStore.js         # 事件状态管理
+│   ├── utils/              # 工具函数
+│   │   ├── voiceParser.js        # 语音命令解析
+│   │   └ api.js                  # API接口
+│   │   └ dateUtils.js            # 日期处理工具
+│   ├── styles/             # 全局样式
+│   │   ├── variables.scss        # Sass变量
+│   │   └ global.scss             # 全局样式
+│   ├── App.vue             # 应用主组件
+│   ├── main.js             # 应用入口
+│   └ router.js             # 路由配置
+├── server/                 # 后端源码
+│   ├── server.js           # Express服务器
+│   ├── data.json           # 数据存储文件
+│   └ .env                  # 环境变量配置
+├── public/                 # 静态资源
+├── package.json            # 项目配置
+├── vite.config.js          # Vite配置
+└ README.md                 # 项目文档
+```
+
+## 注意事项
+
+### 1. 邮件提醒配置
+- 需要在 `server/.env` 文件中配置邮箱信息
+- EMAIL_USER: 发件人邮箱地址
+- EMAIL_PASS: 邮箱授权密码（不是登录密码）
+- Gmail需要开启"允许不够安全的应用"或使用应用专用密码
+
+### 2. 语音识别
+- 需要浏览器支持Web Speech API
+- Chrome、Edge浏览器支持较好
+- 需要麦克风权限
+- 建议在安静环境下使用
+
+### 3. 数据存储
+- 数据存储在 `server/data.json` 文件
+- 定期备份该文件以防数据丢失
+- 服务器重启后数据不会丢失
+
+### 4. 时区问题
+- 所有时间基于本机时间计算
+- 邮件提醒基于本机时间发送
+- 确保本机时间准确
+
+### 5. 浏览器兼容性
+- 推荐使用Chrome、Edge、Firefox
+- 不支持IE浏览器
+- 需要支持ES6+的现代浏览器
+
+## 开发规范
+
+本项目遵循Vue 3全局开发规范，详见 `.trae/rules/style.md`：
+
+- 使用 `<script setup>` 语法
+- 组件命名采用大驼峰（PascalCase）
+- 变量命名采用小驼峰（camelCase）
+- CSS类名采用短横线（kebab-case）
+- 样式使用SCSS并添加scoped
+- 响应式单位优先（rem、em、vw、vh）
+- 可爱风设计风格（圆角、柔和配色）
+
+## 常见问题
+
+### Q1: 刷新页面后数据丢失？
+**A:** 确保后端服务器正常运行。数据存储在后端服务器，前端通过API获取数据。
+
+### Q2: 邮件提醒未发送？
+**A:** 检查以下几点：
+- 后端服务器是否正常运行
+- `.env` 文件中的邮箱配置是否正确
+- 事件时间是否在30分钟内
+- 本机时间是否准确
+
+### Q3: 语音识别不准确？
+**A:** 尝试以下方法：
+- 在安静环境下使用
+- 清晰说出事件内容
+- 使用标准普通话
+- 检查麦克风是否正常
+
+### Q4: 年份选择器点击无反应？
+**A:** 已修复该问题。确保使用最新版本代码。
+
+### Q5: 过去日期无法点击？
+**A:** 这是正常功能。过去日期灰化且不可设置任务，防止用户误操作。
+
+## 更新日志
+
+### v1.0.0 (2026-05-31)
+- 实现日历基础功能
+- 添加语音识别功能
+- 实现事件管理功能
+- 添加邮件提醒功能
+- 实现数据持久化
+- 修复年份选择器点击问题
+- 修复语音识别相对时间问题
+- 优化可爱风设计风格
+
+## 联系方式
+
+如有问题或建议，请通过以下方式联系：
+- 项目地址：[GitHub仓库链接]
+- 邮箱：[开发者邮箱]
+
+## 许可证
+
+本项目仅供学习和研究使用，不得用于商业用途。

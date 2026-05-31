@@ -1,5 +1,5 @@
 <script setup>
-const weekDays = ['日', '一', '二', '三', '四', '五', '六']
+const weekDays = ["日", "一", "二", "三", "四", "五", "六"];
 </script>
 
 <template>
@@ -11,8 +11,6 @@ const weekDays = ['日', '一', '二', '三', '四', '五', '六']
 </template>
 
 <style scoped lang="scss">
-@use '../styles/variables' as *;
-
 .calendar-header-row {
   display: grid;
   grid-template-columns: repeat(7, 1fr);

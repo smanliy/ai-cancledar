@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from "vue";
-import { useRoute } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import { useEventStore } from "../stores/eventStore";
 import {
   sendReminderEmail as sendReminderEmailApi,
@@ -8,6 +8,7 @@ import {
 } from "../utils/api";
 
 const route = useRoute();
+const router = useRouter();
 const eventStore = useEventStore();
 
 const event = eventStore.getEventById(route.params.id);
@@ -49,10 +50,14 @@ function formatTime(date) {
   return d.toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" });
 }
 
+function handleBack() {
+  router.push("/");
+}
+
 async function handleDelete() {
   if (confirm("确定要删除这个事件吗？")) {
     await eventStore.deleteEvent(route.params.id);
-    history.back();
+    router.push("/");
   }
 }
 
@@ -83,13 +88,7 @@ async function handleSaveReminderEmail() {
       reminderEmail: reminderEmail.value,
     });
     showReminderModal.value = false;
-
-    const testResult = await sendTestEmail(reminderEmail.value);
-    if (testResult.success) {
-      alert("提醒邮箱设置成功！已发送测试邮件，请查收。");
-    } else {
-      alert("邮件发送失败，请检查邮箱配置或稍后重试。");
-    }
+    alert("提醒邮箱设置成功！");
   }
 }
 
@@ -173,7 +172,7 @@ onUnmounted(() => {
 <template>
   <div class="event-detail" v-if="event">
     <header class="detail-header">
-      <button class="btn-back" @click="history.back()">‹ 返回</button>
+      <button class="btn-back" @click="handleBack()">‹ 返回</button>
       <h2>事件详情</h2>
       <button class="btn-delete" @click="handleDelete">删除</button>
     </header>
@@ -317,8 +316,6 @@ onUnmounted(() => {
 </template>
 
 <style scoped lang="scss">
-@use "../styles/variables" as *;
-
 .event-detail {
   min-height: 100vh;
   background: linear-gradient(135deg, #fff8e7 0%, #ffe4c4 100%);

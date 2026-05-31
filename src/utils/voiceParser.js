@@ -51,13 +51,13 @@ const REMINDER_PATTERNS = [
 ]
 
 const RELATIVE_TIME_PATTERNS = [
-  { pattern: /(\d+)分钟(?:后|以后)?/i, type: 'relative', unit: 'minute' },
-  { pattern: /(\d+)分(?:钟)?(?:后|以后)?/i, type: 'relative', unit: 'minute' },
+  { pattern: /([零一二三四五六七八九十百千万\d]+)分钟(?:后|以后)?/i, type: 'relative', unit: 'minute' },
+  { pattern: /([零一二三四五六七八九十百千万\d]+)分(?:钟)?(?:后|以后)?/i, type: 'relative', unit: 'minute' },
   { pattern: /半小时(?:后|以后)?/i, type: 'relative', unit: 'minute', value: 30 },
-  { pattern: /(\d+)小时(?:后|以后)?/i, type: 'relative', unit: 'hour' },
-  { pattern: /(\d+)个小时(?:后|以后)?/i, type: 'relative', unit: 'hour' },
-  { pattern: /(\d+)天(?:后|以后)?/i, type: 'relative', unit: 'day' },
-  { pattern: /(\d+)天后(?:再说)?/i, type: 'relative', unit: 'day' },
+  { pattern: /([零一二三四五六七八九十百千万\d]+)小时(?:后|以后)?/i, type: 'relative', unit: 'hour' },
+  { pattern: /([零一二三四五六七八九十百千万\d]+)个小时(?:后|以后)?/i, type: 'relative', unit: 'hour' },
+  { pattern: /([零一二三四五六七八九十百千万\d]+)天(?:后|以后)?/i, type: 'relative', unit: 'day' },
+  { pattern: /([零一二三四五六七八九十百千万\d]+)天后(?:再说)?/i, type: 'relative', unit: 'day' },
   { pattern: /大后天/i, type: 'relative', unit: 'day', value: 3 },
   { pattern: /前天/i, type: 'relative', unit: 'day', value: -2 },
   { pattern: /昨天/i, type: 'relative', unit: 'day', value: -1 }
@@ -107,6 +107,32 @@ function extractReminderMinutes(text) {
   return null
 }
 
+function chineseToNumber(chinese) {
+  const chineseNumbers = {
+    '零': 0, '一': 1, '二': 2, '三': 3, '四': 4,
+    '五': 5, '六': 6, '七': 7, '八': 8, '九': 9,
+    '十': 10, '百': 100, '千': 1000, '万': 10000
+  };
+
+  let result = 0;
+  let temp = 0;
+
+  for (const char of chinese) {
+    if (chineseNumbers[char] !== undefined) {
+      const value = chineseNumbers[char];
+      if (value >= 10) {
+        result += temp * value;
+        temp = 0;
+      } else {
+        temp = temp * 10 + value;
+      }
+    }
+  }
+
+  result += temp;
+  return result || parseInt(chinese) || 1;
+}
+
 function extractRelativeTime(text) {
   for (const { pattern, type, unit, value } of RELATIVE_TIME_PATTERNS) {
     const match = text.match(pattern)
@@ -114,7 +140,7 @@ function extractRelativeTime(text) {
       return {
         type: type,
         unit: unit,
-        value: value || parseInt(match[1])
+        value: value || chineseToNumber(match[1])
       }
     }
   }
@@ -190,7 +216,7 @@ function cleanTitle(text) {
     /\d+分(?:钟)?(?:后|以后)?/gi,
     /分(?:钟)?(?:后|以后)/gi,
     /半小时(?:后|以后)?/gi,
-    new RegExp(`${chineseNumbers}+小时(?:后|以后)`, 'gi'),
+    new RegExp(`${chineseNumbers}+小时(?:后|以后)?`, 'gi'),
     /\d+小时(?:后|以后)/gi,
     /小时(?:后|以后)/gi,
     new RegExp(`${chineseNumbers}+个小时(?:后|以后)?`, 'gi'),
@@ -274,7 +300,10 @@ function cleanTitle(text) {
 
   const actionWords = [
     '提醒我', '提醒', '帮我记', '我要', '安排', '帮我',
-    '设置提醒', '新建', '创建', '添加', '记一下', '新增'
+    '设置提醒', '新建', '创建', '添加', '记一下', '新增',
+    '做', '参加', '去', '有', '开始', '完成', '准备',
+    '一个', '一次', '一场', '一件', '一项', '一次',
+    '那个', '这个', '那个', '这些', '那些'
   ];
 
   for (const word of actionWords) {
@@ -386,28 +415,27 @@ export function resolveEventFromCommand(command, baseDate = new Date()) {
     note: ''
   }
 
-  if (command.entities.relativeMinutes !== null && command.entities.relativeMinutes !== undefined) {
-    event.startTime = new Date(now.getTime() + command.entities.relativeMinutes * 60 * 1000)
-    event.endTime = new Date(event.startTime.getTime() + 60 * 60 * 1000)
-    return event
-  }
-
-  if (command.entities.date === 'relative' && command.entities.time) {
-    const { unit, value } = command.entities.time
-    let ms = 0
-    switch (unit) {
-      case 'minute':
-        ms = value * 60 * 1000
-        break
-      case 'hour':
-        ms = value * 60 * 60 * 1000
-        break
-      case 'day':
-        ms = value * 24 * 60 * 60 * 1000
-        break
+  if (command.entities.date === 'relative') {
+    if (command.entities.time) {
+      const { unit, value } = command.entities.time
+      let ms = 0
+      switch (unit) {
+        case 'minute':
+          ms = value * 60 * 1000
+          break
+        case 'hour':
+          ms = value * 60 * 60 * 1000
+          break
+        case 'day':
+          ms = value * 24 * 60 * 60 * 1000
+          break
+      }
+      event.startTime = new Date(now.getTime() + ms)
+      event.endTime = new Date(event.startTime.getTime() + 60 * 60 * 1000)
+    } else if (command.entities.relativeMinutes !== null && command.entities.relativeMinutes !== undefined) {
+      event.startTime = new Date(now.getTime() + command.entities.relativeMinutes * 60 * 1000)
+      event.endTime = new Date(event.startTime.getTime() + 60 * 60 * 1000)
     }
-    event.startTime = new Date(now.getTime() + ms)
-    event.endTime = new Date(event.startTime.getTime() + 60 * 60 * 1000)
     return event
   }
 

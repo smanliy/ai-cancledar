@@ -82,8 +82,9 @@ async function processVoiceInput(text) {
   feedback.value = "正在处理...";
 
   if (command.action === "create") {
-    const event = resolveEventFromCommand(command, eventStore.selectedDate);
-    await eventStore.addEvent(event);
+    const event = resolveEventFromCommand(command);
+    const newEvent = await eventStore.addEvent(event);
+    eventStore.setSelectedDate(new Date(newEvent.startTime));
     feedback.value = formatEventForSpeech(event);
   } else if (command.action === "query") {
     const dateStr = eventStore.selectedDate.toLocaleDateString("zh-CN");
@@ -198,8 +199,6 @@ function speakFeedback() {
 </template>
 
 <style scoped lang="scss">
-@use "../styles/variables" as *;
-
 .voice-overlay {
   position: fixed;
   top: 0;
@@ -467,7 +466,7 @@ function speakFeedback() {
   background: linear-gradient(
     135deg,
     $color-success 0%,
-    darken($color-success, 15%) 100%
+    $color-success-dark 100%
   );
   color: white;
   flex: 1;

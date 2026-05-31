@@ -81,8 +81,6 @@ const categoryColors = {
 </template>
 
 <style scoped lang="scss">
-@use "../styles/variables" as *;
-
 .event-list {
   margin-top: $spacing-xl;
   padding-top: $spacing-lg;

@@ -1,24 +1,26 @@
 <script setup>
-import { useEventStore } from '../stores/eventStore'
+import { useEventStore } from "../stores/eventStore";
 
-const eventStore = useEventStore()
+const eventStore = useEventStore();
 
 function handleViewModeChange(mode) {
-  eventStore.setViewMode(mode)
+  eventStore.setViewMode(mode);
 }
 </script>
 
 <template>
   <div class="calendar-header-row">
-    <div class="weekday" v-for="day in ['日', '一', '二', '三', '四', '五', '六']" :key="day">
+    <div
+      class="weekday"
+      v-for="day in ['日', '一', '二', '三', '四', '五', '六']"
+      :key="day"
+    >
       {{ day }}
     </div>
   </div>
 </template>
 
 <style scoped lang="scss">
-@use '../styles/variables' as *;
-
 .calendar-header-row {
   display: grid;
   grid-template-columns: repeat(7, 1fr);

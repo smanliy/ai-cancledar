@@ -6,6 +6,15 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
+process.on('uncaughtException', (error) => {
+  console.error('未捕获的异常:', error);
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('未处理的Promise拒绝:', reason);
+});
+
 const app = express();
 const PORT = process.env.PORT || 3001;
 
@@ -89,10 +98,18 @@ function scheduleReminderForEvent(event) {
   if (!event.reminderEmail) return;
 
   const eventTime = new Date(event.startTime);
-  const reminderTime = new Date(eventTime.getTime() - (event.reminder || 5) * 60 * 1000);
   const now = new Date();
+  const reminderMinutes = 30;
+  const reminderTime = new Date(eventTime.getTime() - reminderMinutes * 60 * 1000);
+  const timeUntilReminder = reminderTime.getTime() - now.getTime();
 
-  if (reminderTime <= now) {
+  console.log(`[提醒检查] 事件: ${event.title}`);
+  console.log(`[提醒检查] 事件时间: ${eventTime.toLocaleString('zh-CN')}`);
+  console.log(`[提醒检查] 当前时间: ${now.toLocaleString('zh-CN')}`);
+  console.log(`[提醒检查] 提醒时间: ${reminderTime.toLocaleString('zh-CN')}`);
+  console.log(`[提醒检查] 距离提醒还有: ${timeUntilReminder} 毫秒 (${Math.round(timeUntilReminder / 1000)} 秒)`);
+
+  if (timeUntilReminder <= 0) {
     console.log(`事件 ${event.title} 的提醒时间已过，立即发送提醒`);
     sendReminderEmail(event);
     return;
@@ -110,20 +127,28 @@ function scheduleReminderForEvent(event) {
   });
 
   scheduledJobs[event.id] = job;
-  console.log(`已安排提醒: ${event.title} 在 ${reminderTime}`);
+  console.log(`已安排提醒: ${event.title} 在 ${reminderTime}（事件前${reminderMinutes}分钟）`);
 }
-
 function scheduleAllReminders() {
-  Object.keys(scheduledJobs).forEach(jobId => {
-    scheduledJobs[jobId].cancel();
-    delete scheduledJobs[jobId];
-  });
+  try {
+    console.log('[调度] 开始安排所有提醒...');
+    console.log(`[调度] 当前事件数量: ${events.length}`);
 
-  events.forEach(event => {
-    if (event.reminderEmail) {
-      scheduleReminderForEvent(event);
-    }
-  });
+    Object.keys(scheduledJobs).forEach(jobId => {
+      scheduledJobs[jobId].cancel();
+      delete scheduledJobs[jobId];
+    });
+
+    events.forEach(event => {
+      if (event.reminderEmail) {
+        scheduleReminderForEvent(event);
+      }
+    });
+
+    console.log('[调度] 提醒安排完成');
+  } catch (error) {
+    console.error('[调度] 安排提醒失败:', error);
+  }
 }
 
 app.get('/api/events', (req, res) => {
@@ -143,8 +168,8 @@ app.post('/api/events', (req, res) => {
   const newEvent = {
     id: Date.now().toString(),
     ...req.body,
-    startTime: new Date(req.body.startTime).toISOString(),
-    endTime: req.body.endTime ? new Date(req.body.endTime).toISOString() : null,
+    startTime: req.body.startTime,
+    endTime: req.body.endTime,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString()
   };
@@ -163,8 +188,8 @@ app.put('/api/events/:id', (req, res) => {
     const updatedEvent = {
       ...events[index],
       ...req.body,
-      startTime: req.body.startTime ? new Date(req.body.startTime).toISOString() : events[index].startTime,
-      endTime: req.body.endTime ? new Date(req.body.endTime).toISOString() : events[index].endTime,
+      startTime: req.body.startTime || events[index].startTime,
+      endTime: req.body.endTime || events[index].endTime,
       updatedAt: new Date().toISOString()
     };
     events[index] = updatedEvent;
@@ -246,4 +271,16 @@ app.get('/api/jobs', (req, res) => {
 
 app.listen(PORT, () => {
   console.log(`🚀 服务器运行在 http://localhost:${PORT}`);
+  console.log(`[服务器] 当前时间: ${new Date().toLocaleString('zh-CN')}`);
+  console.log(`[服务器] 邮件配置: ${process.env.EMAIL_USER ? '已配置' : '未配置'}`);
+
+  setTimeout(() => {
+    console.log('[服务器] 开始初始化提醒调度...');
+    scheduleAllReminders();
+    console.log('[服务器] 提醒调度初始化完成');
+  }, 1000);
 });
+
+setInterval(() => {
+  console.log(`[服务器心跳] 运行中 | 时间: ${new Date().toLocaleTimeString('zh-CN')}`);
+}, 30000);

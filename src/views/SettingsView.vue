@@ -1,25 +1,28 @@
 <script setup>
-import { ref } from 'vue'
+import { ref } from "vue";
 
 const reminderOptions = [
-  { value: 0, label: '不提醒' },
-  { value: 5, label: '5 分钟前' },
-  { value: 15, label: '15 分钟前' },
-  { value: 30, label: '30 分钟前' },
-  { value: 60, label: '1 小时前' },
-  { value: 1440, label: '1 天前' }
-]
+  { value: 0, label: "不提醒" },
+  { value: 5, label: "5 分钟前" },
+  { value: 15, label: "15 分钟前" },
+  { value: 30, label: "30 分钟前" },
+  { value: 60, label: "1 小时前" },
+  { value: 1440, label: "1 天前" },
+];
 
 const currentSettings = ref({
   voiceEnabled: true,
   defaultReminder: 15,
   soundEnabled: true,
-  vibrationEnabled: true
-})
+  vibrationEnabled: true,
+});
 
 function handleSave() {
-  localStorage.setItem('calendar-settings', JSON.stringify(currentSettings.value))
-  alert('设置已保存')
+  localStorage.setItem(
+    "calendar-settings",
+    JSON.stringify(currentSettings.value),
+  );
+  alert("设置已保存");
 }
 </script>
 
@@ -41,7 +44,7 @@ function handleSave() {
             <span class="setting-desc">使用麦克风添加和管理事件</span>
           </div>
           <label class="switch">
-            <input type="checkbox" v-model="currentSettings.voiceEnabled">
+            <input type="checkbox" v-model="currentSettings.voiceEnabled" />
             <span class="slider"></span>
           </label>
         </div>
@@ -52,7 +55,7 @@ function handleSave() {
             <span class="setting-desc">操作完成后语音播报确认</span>
           </div>
           <label class="switch">
-            <input type="checkbox" v-model="currentSettings.soundEnabled">
+            <input type="checkbox" v-model="currentSettings.soundEnabled" />
             <span class="slider"></span>
           </label>
         </div>
@@ -66,8 +69,15 @@ function handleSave() {
             <span class="setting-label">默认提醒时间</span>
             <span class="setting-desc">新事件的默认提前提醒时间</span>
           </div>
-          <select v-model="currentSettings.defaultReminder" class="select-input">
-            <option v-for="opt in reminderOptions" :key="opt.value" :value="opt.value">
+          <select
+            v-model="currentSettings.defaultReminder"
+            class="select-input"
+          >
+            <option
+              v-for="opt in reminderOptions"
+              :key="opt.value"
+              :value="opt.value"
+            >
               {{ opt.label }}
             </option>
           </select>
@@ -79,7 +89,7 @@ function handleSave() {
             <span class="setting-desc">移动设备上的振动反馈</span>
           </div>
           <label class="switch">
-            <input type="checkbox" v-model="currentSettings.vibrationEnabled">
+            <input type="checkbox" v-model="currentSettings.vibrationEnabled" />
             <span class="slider"></span>
           </label>
         </div>
@@ -100,8 +110,6 @@ function handleSave() {
 </template>
 
 <style scoped lang="scss">
-@use '../styles/variables' as *;
-
 .settings-view {
   min-height: 100vh;
   background: $color-bg-base;
@@ -209,7 +217,7 @@ function handleSave() {
     transition: $transition-base;
 
     &::before {
-      content: '';
+      content: "";
       position: absolute;
       height: 1.2rem;
       width: 1.2rem;
@@ -259,7 +267,11 @@ function handleSave() {
   width: 100%;
   padding: $spacing-md;
   border: none;
-  background: linear-gradient(135deg, $color-primary 0%, $color-primary-dark 100%);
+  background: linear-gradient(
+    135deg,
+    $color-primary 0%,
+    $color-primary-dark 100%
+  );
   color: white;
   border-radius: $border-radius-base;
   font-size: $font-size-base;

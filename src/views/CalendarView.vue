@@ -102,16 +102,13 @@ function handleVoiceCommand(command) {
 
       <div class="calendar-body">
         <div class="calendar-header">
-          <h1 class="calendar-title">
-            <span class="year-selector" @click="handleYearClick">
-              {{ currentYear }}年
+          <div class="header-left">
+            <div class="year-selector" @click="handleYearClick">
+              <span class="year-text">{{ currentYear }}年</span>
               <span class="year-arrow">{{ showYearPicker ? "▲" : "▼" }}</span>
-            </span>
-            {{ monthNames[currentMonth] }}
-          </h1>
-          <button class="btn-settings" @click="$router.push('/settings')">
-            <span class="icon">⚙️</span>
-          </button>
+            </div>
+            <span class="month-text">{{ monthNames[currentMonth] }}</span>
+          </div>
         </div>
 
         <Transition name="fade">
@@ -194,8 +191,6 @@ function handleVoiceCommand(command) {
 </template>
 
 <style scoped lang="scss">
-@use "../styles/variables" as *;
-
 .calendar-view {
   min-height: 100vh;
   background: linear-gradient(135deg, #fff8e7 0%, #ffe4c4 100%);
@@ -228,6 +223,7 @@ function handleVoiceCommand(command) {
   margin-bottom: -0.25rem;
   z-index: 10;
   position: relative;
+  pointer-events: none;
 }
 
 .coil {
@@ -289,6 +285,12 @@ function handleVoiceCommand(command) {
   z-index: 2;
 }
 
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+}
+
 .calendar-title {
   font-size: 1.75rem;
   font-weight: 700;
@@ -303,22 +305,40 @@ function handleVoiceCommand(command) {
 
 .year-selector {
   cursor: pointer;
-  padding: 0.25rem 0.5rem;
-  border-radius: 6px;
+  padding: 0.5rem 0.75rem;
+  border-radius: 12px;
   transition: all $transition-fast;
   display: flex;
   align-items: center;
-  gap: 0.25rem;
+  gap: 0.5rem;
+  background: linear-gradient(135deg, #6b8dd6 0%, #8b5cf6 100%);
+  box-shadow: 0 4px 12px rgba(107, 141, 214, 0.4);
+  border: 2px solid #5a7bc2;
 
   &:hover {
-    background: rgba(212, 165, 116, 0.3);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(107, 141, 214, 0.5);
   }
 }
 
+.year-text {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: white;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
+}
+
 .year-arrow {
-  font-size: 0.6rem;
-  color: #c4956a;
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.9);
   transition: transform $transition-fast;
+}
+
+.month-text {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #8b6914;
+  font-family: "Comic Sans MS", cursive, sans-serif;
 }
 
 .year-picker {
@@ -356,29 +376,6 @@ function handleVoiceCommand(command) {
     background: #ffc080;
     font-weight: 700;
     color: #8b4513;
-  }
-}
-
-.btn-settings {
-  width: 2.5rem;
-  height: 2.5rem;
-  border: none;
-  background: #ffe4b5;
-  border-radius: 50%;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all $transition-base;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-
-  .icon {
-    font-size: $font-size-lg;
-  }
-
-  &:hover {
-    background: #ffd49a;
-    transform: rotate(30deg) scale(1.1);
   }
 }
 

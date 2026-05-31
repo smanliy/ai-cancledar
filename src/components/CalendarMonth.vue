@@ -21,6 +21,13 @@ onUnmounted(() => {
   }
 });
 
+const displayDate = computed(() => {
+  if (eventStore.selectedDate) {
+    return eventStore.selectedDate;
+  }
+  return currentTime.value;
+});
+
 const currentTimeString = computed(() => {
   const hours = currentTime.value.getHours().toString().padStart(2, "0");
   const minutes = currentTime.value.getMinutes().toString().padStart(2, "0");
@@ -96,7 +103,7 @@ function handleSelectDate(date) {
       <span class="time-icon">🕐</span>
       <span class="time-string">{{ currentTimeString }}</span>
       <span class="time-date">{{
-        currentTime.toLocaleDateString("zh-CN", {
+        displayDate.toLocaleDateString("zh-CN", {
           weekday: "long",
           month: "long",
           day: "numeric",
@@ -143,8 +150,6 @@ function handleSelectDate(date) {
 </template>
 
 <style scoped lang="scss">
-@use "../styles/variables" as *;
-
 .calendar-month {
   width: 100%;
   padding: $spacing-md;

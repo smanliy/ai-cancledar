@@ -37,8 +37,6 @@ const isHovering = ref(false);
 </template>
 
 <style scoped lang="scss">
-@use "../styles/variables" as *;
-
 .page-flip-container {
   position: fixed;
   bottom: 2rem;
