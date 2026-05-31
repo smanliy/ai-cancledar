@@ -12,42 +12,8 @@ const PORT = process.env.PORT || 3001;
 app.use(cors());
 app.use(express.json());
 
-const events = [
-  {
-    id: '1',
-    title: '团队周会',
-    startTime: new Date(new Date().setHours(10, 0, 0, 0)).toISOString(),
-    endTime: new Date(new Date().setHours(11, 0, 0, 0)).toISOString(),
-    isAllDay: false,
-    category: 'work',
-    reminder: 15,
-    reminderEmail: '',
-    repeat: 'weekly',
-    note: '讨论项目进度'
-  },
-  {
-    id: '2',
-    title: '健身',
-    startTime: new Date(new Date().setDate(new Date().getDate() + 1)).toISOString(),
-    isAllDay: false,
-    category: 'health',
-    reminder: 30,
-    reminderEmail: '',
-    repeat: 'none',
-    note: ''
-  },
-  {
-    id: '3',
-    title: '妈妈生日',
-    startTime: new Date(new Date().getFullYear(), new Date().getMonth(), new Date().getDate() + 5).toISOString(),
-    isAllDay: true,
-    category: 'life',
-    reminder: 1440,
-    reminderEmail: '',
-    repeat: 'yearly',
-    note: '别忘了买蛋糕'
-  }
-];
+const events = [];
+const scheduledJobs = {};
 
 let transporter = nodemailer.createTransport({
   service: 'QQ',
@@ -61,14 +27,21 @@ async function sendReminderEmail(event) {
   if (!event.reminderEmail) return;
 
   const eventTime = new Date(event.startTime);
-  const formattedTime = eventTime.toLocaleString('zh-CN', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-    weekday: 'long',
-    hour: '2-digit',
-    minute: '2-digit'
-  });
+  const formattedTime = event.isAllDay
+    ? eventTime.toLocaleDateString('zh-CN', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      weekday: 'long'
+    })
+    : eventTime.toLocaleString('zh-CN', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      weekday: 'long',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
 
   const mailOptions = {
     from: `"AI日历" <${process.env.EMAIL_USER}>`,
@@ -112,19 +85,43 @@ function getCategoryLabel(category) {
   return labels[category] || category;
 }
 
-function scheduleReminders() {
+function scheduleReminderForEvent(event) {
+  if (!event.reminderEmail) return;
+
+  const eventTime = new Date(event.startTime);
+  const reminderTime = new Date(eventTime.getTime() - (event.reminder || 5) * 60 * 1000);
+  const now = new Date();
+
+  if (reminderTime <= now) {
+    console.log(`事件 ${event.title} 的提醒时间已过，立即发送提醒`);
+    sendReminderEmail(event);
+    return;
+  }
+
+  if (scheduledJobs[event.id]) {
+    scheduledJobs[event.id].cancel();
+    console.log(`已取消旧的提醒任务: ${event.title}`);
+  }
+
+  const job = schedule.scheduleJob(reminderTime, () => {
+    sendReminderEmail(event);
+    console.log(`已发送提醒邮件: ${event.title}`);
+    delete scheduledJobs[event.id];
+  });
+
+  scheduledJobs[event.id] = job;
+  console.log(`已安排提醒: ${event.title} 在 ${reminderTime}`);
+}
+
+function scheduleAllReminders() {
+  Object.keys(scheduledJobs).forEach(jobId => {
+    scheduledJobs[jobId].cancel();
+    delete scheduledJobs[jobId];
+  });
+
   events.forEach(event => {
-    if (!event.reminderEmail) return;
-
-    const eventTime = new Date(event.startTime);
-    const reminderTime = new Date(eventTime.getTime() - (event.reminder || 5) * 60 * 1000);
-
-    if (reminderTime > new Date()) {
-      const job = schedule.scheduleJob(reminderTime, () => {
-        sendReminderEmail(event);
-        console.log(`已发送提醒邮件: ${event.title}`);
-      });
-      console.log(`已安排提醒: ${event.title} 在 ${reminderTime}`);
+    if (event.reminderEmail) {
+      scheduleReminderForEvent(event);
     }
   });
 }
@@ -154,15 +151,7 @@ app.post('/api/events', (req, res) => {
   events.push(newEvent);
 
   if (newEvent.reminderEmail) {
-    const eventTime = new Date(newEvent.startTime);
-    const reminderTime = new Date(eventTime.getTime() - (newEvent.reminder || 5) * 60 * 1000);
-
-    if (reminderTime > new Date()) {
-      const job = schedule.scheduleJob(reminderTime, () => {
-        sendReminderEmail(newEvent);
-      });
-      console.log(`已安排新事件提醒: ${newEvent.title}`);
-    }
+    scheduleReminderForEvent(newEvent);
   }
 
   res.status(201).json(newEvent);
@@ -171,19 +160,23 @@ app.post('/api/events', (req, res) => {
 app.put('/api/events/:id', (req, res) => {
   const index = events.findIndex(e => e.id === req.params.id);
   if (index !== -1) {
-    events[index] = {
+    const updatedEvent = {
       ...events[index],
       ...req.body,
       startTime: req.body.startTime ? new Date(req.body.startTime).toISOString() : events[index].startTime,
       endTime: req.body.endTime ? new Date(req.body.endTime).toISOString() : events[index].endTime,
       updatedAt: new Date().toISOString()
     };
+    events[index] = updatedEvent;
 
-    if (events[index].reminderEmail) {
-      scheduleReminders();
+    if (updatedEvent.reminderEmail) {
+      scheduleReminderForEvent(updatedEvent);
+    } else if (scheduledJobs[updatedEvent.id]) {
+      scheduledJobs[updatedEvent.id].cancel();
+      delete scheduledJobs[updatedEvent.id];
     }
 
-    res.json(events[index]);
+    res.json(updatedEvent);
   } else {
     res.status(404).json({ error: '事件不存在' });
   }
@@ -192,6 +185,10 @@ app.put('/api/events/:id', (req, res) => {
 app.delete('/api/events/:id', (req, res) => {
   const index = events.findIndex(e => e.id === req.params.id);
   if (index !== -1) {
+    if (scheduledJobs[req.params.id]) {
+      scheduledJobs[req.params.id].cancel();
+      delete scheduledJobs[req.params.id];
+    }
     events.splice(index, 1);
     res.json({ success: true });
   } else {
@@ -214,7 +211,7 @@ app.post('/api/send-test-email', async (req, res) => {
     category: 'life',
     reminder: 5,
     reminderEmail: email,
-    note: '这是一封测试邮件'
+    note: '这是一封测试邮件，用于验证邮箱提醒功能是否正常工作。'
   };
 
   try {
@@ -240,7 +237,13 @@ app.post('/api/send-reminder', async (req, res) => {
   }
 });
 
+app.get('/api/jobs', (req, res) => {
+  res.json({
+    scheduledJobs: Object.keys(scheduledJobs).length,
+    eventsWithReminders: events.filter(e => e.reminderEmail).length
+  });
+});
+
 app.listen(PORT, () => {
   console.log(`🚀 服务器运行在 http://localhost:${PORT}`);
-  scheduleReminders();
 });

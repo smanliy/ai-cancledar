@@ -1,33 +1,172 @@
 const CATEGORY_KEYWORDS = {
-  work: ['工作', '会议', '开会', '报告', '演讲', '商务'],
-  life: ['生日', '纪念日', '聚会', '约会', '家人'],
-  health: ['健身', '运动', '跑步', '瑜伽', '体检', '医院'],
-  social: ['朋友', '聚餐', '社交', '约会', '派对']
+  work: ['工作', '会议', '开会', '报告', '演讲', '商务', '项目', '汇报', '面试'],
+  life: ['生日', '纪念日', '聚会', '约会', '家人', '购物', '吃饭', '电影'],
+  health: ['健身', '运动', '跑步', '瑜伽', '体检', '医院', '锻炼', '减肥'],
+  social: ['朋友', '聚餐', '社交', '派对', '同学', '同事', '拜访']
 }
 
-const TIME_PATTERNS = [
-  { pattern: /(\d+)分钟(?:后|以后)/i, type: 'relative', unit: 'minute' },
-  { pattern: /(\d+)小时(?:后|以后)/i, type: 'relative', unit: 'hour' },
-  { pattern: /(\d+)天(?:后|以后)/i, type: 'relative', unit: 'day' },
-  { pattern: /今天(?:上午|下午|晚上)?(\d+)?[点时](?:(\d+)分)?/i, type: 'today' },
-  { pattern: /明天(?:上午|下午|晚上)?(\d+)?[点时](?:(\d+)分)?/i, type: 'tomorrow' },
-  { pattern: /后天(?:上午|下午|晚上)?(\d+)?[点时](?:(\d+)分)?/i, type: 'dayAfter' },
-  { pattern: /下周一(?:上午|下午|晚上)?(\d+)?[点时](?:(\d+)分)?/i, type: 'nextMonday' },
-  { pattern: /下周二(?:上午|下午|晚上)?(\d+)?[点时](?:(\d+)分)?/i, type: 'nextTuesday' },
-  { pattern: /下周三(?:上午|下午|晚上)?(\d+)?[点时](?:(\d+)分)?/i, type: 'nextWednesday' },
-  { pattern: /下周四(?:上午|下午|晚上)?(\d+)?[点时](?:(\d+)分)?/i, type: 'nextThursday' },
-  { pattern: /下周五(?:上午|下午|晚上)?(\d+)?[点时](?:(\d+)分)?/i, type: 'nextFriday' },
-  { pattern: /下周六(?:上午|下午|晚上)?(\d+)?[点时](?:(\d+)分)?/i, type: 'nextSaturday' },
-  { pattern: /下周日(?:上午|下午|晚上)?(\d+)?[点时](?:(\d+)分)?/i, type: 'nextSunday' },
-  { pattern: /(\d+)月(\d+)日(?:上午|下午|晚上)?(\d+)?[点时](?:(\d+)分)?/i, type: 'monthDay' },
-  { pattern: /(\d+)日(?:上午|下午|晚上)?(\d+)?[点时](?:(\d+)分)?/i, type: 'dayOfMonth' }
+const FUZZY_TIME_WORDS = {
+  '一会': { minutes: 10 },
+  '一会儿': { minutes: 10 },
+  '过一会': { minutes: 15 },
+  '过一会儿': { minutes: 15 },
+  '马上': { minutes: 5 },
+  '立刻': { minutes: 5 },
+  '马上就': { minutes: 5 },
+  '稍后': { minutes: 15 },
+  '等会儿': { minutes: 10 },
+  '等一下': { minutes: 5 },
+  '不久': { minutes: 20 },
+  '很快': { minutes: 8 },
+  '马上到': { minutes: 3 },
+  '稍等': { minutes: 5 },
+  '稍后提醒': { minutes: 15 },
+  '等会儿提醒': { minutes: 10 }
+}
+
+const TIME_PERIODS = {
+  '早上': { hour: 7 },
+  '早晨': { hour: 7 },
+  '上午': { hour: 9 },
+  '中午': { hour: 12 },
+  '午休': { hour: 12 },
+  '下午': { hour: 14 },
+  '傍晚': { hour: 18 },
+  '晚上': { hour: 20 },
+  '夜里': { hour: 22 },
+  '深夜': { hour: 23 },
+  '凌晨': { hour: 2 }
+}
+
+const REMINDER_PATTERNS = [
+  { pattern: /提前(\d+)分钟提醒/i, valueIndex: 1, unit: 'minute' },
+  { pattern: /提前(\d+)分提醒/i, valueIndex: 1, unit: 'minute' },
+  { pattern: /提前(\d+)小时提醒/i, valueIndex: 1, unit: 'hour' },
+  { pattern: /提前半小时提醒/i, value: 30, unit: 'minute' },
+  { pattern: /提前一小时提醒/i, value: 60, unit: 'minute' },
+  { pattern: /(\d+)分钟前提醒/i, valueIndex: 1, unit: 'minute' },
+  { pattern: /(\d+)分钟提醒/i, valueIndex: 1, unit: 'minute' },
+  { pattern: /30分钟提醒/i, value: 30, unit: 'minute' },
+  { pattern: /半小时提醒/i, value: 30, unit: 'minute' }
+]
+
+const RELATIVE_TIME_PATTERNS = [
+  { pattern: /(\d+)分钟(?:后|以后)?/i, type: 'relative', unit: 'minute' },
+  { pattern: /(\d+)分(?:钟)?(?:后|以后)?/i, type: 'relative', unit: 'minute' },
+  { pattern: /半小时(?:后|以后)?/i, type: 'relative', unit: 'minute', value: 30 },
+  { pattern: /(\d+)小时(?:后|以后)?/i, type: 'relative', unit: 'hour' },
+  { pattern: /(\d+)个小时(?:后|以后)?/i, type: 'relative', unit: 'hour' },
+  { pattern: /(\d+)天(?:后|以后)?/i, type: 'relative', unit: 'day' },
+  { pattern: /(\d+)天后(?:再说)?/i, type: 'relative', unit: 'day' },
+  { pattern: /大后天/i, type: 'relative', unit: 'day', value: 3 },
+  { pattern: /前天/i, type: 'relative', unit: 'day', value: -2 },
+  { pattern: /昨天/i, type: 'relative', unit: 'day', value: -1 }
+]
+
+const ABSOLUTE_TIME_PATTERNS = [
+  { pattern: /今天(?:的)?(早上|早晨|上午|中午|下午|傍晚|晚上|夜里|深夜|凌晨)?(\d+)?[点时](?:(\d+)分)?/i, type: 'today' },
+  { pattern: /明天(?:的)?(早上|早晨|上午|中午|下午|傍晚|晚上|夜里|深夜|凌晨)?(\d+)?[点时](?:(\d+)分)?/i, type: 'tomorrow' },
+  { pattern: /后天(?:的)?(早上|早晨|上午|中午|下午|傍晚|晚上|夜里|深夜|凌晨)?(\d+)?[点时](?:(\d+)分)?/i, type: 'dayAfter' },
+  { pattern: /本周(?:的)?(一|二|三|四|五|六|日|一到五)?/i, type: 'thisWeek' },
+  { pattern: /下周(?:的)?(一|二|三|四|五|六|日)?/i, type: 'nextWeek' },
+  { pattern: /(\d+)月(\d+)日(?:的)?(早上|早晨|上午|中午|下午|傍晚|晚上|夜里|深夜|凌晨)?(\d+)?[点时](?:(\d+)分)?/i, type: 'monthDay' },
+  { pattern: /(\d+)号(?:的)?(早上|早晨|上午|中午|下午|傍晚|晚上|夜里|深夜|凌晨)?(\d+)?[点时](?:(\d+)分)?/i, type: 'dayOfMonth' },
+  { pattern: /(\d+)点(?:(\d+)分)?/i, type: 'todayTime' },
+  { pattern: /(\d+)点半/i, type: 'todayTime', isHalf: true },
+  { pattern: /(\d+)时(?:(\d+)分)?/i, type: 'todayTime' },
+  { pattern: /(早上|早晨|上午|中午|下午|傍晚|晚上|夜里|深夜|凌晨)(\d+)?[点时]?(?:(\d+)分)?/i, type: 'periodTime' }
 ]
 
 const ACTION_PATTERNS = {
-  create: [/添加/i, /创建/i, /新建/i, /记一下/i, /提醒我/i, /新增/i],
-  delete: [/删除/i, /去掉/i, /取消/i],
-  update: [/改到/i, /改成/i, /改到/i, /修改/i, /更新/i],
-  query: [/查看/i, /看看/i, /有什么/i, /查看/i, /显示/i]
+  create: [/添加/i, /创建/i, /新建/i, /记一下/i, /提醒我/i, /新增/i, /设置提醒/i, /帮我记/i, /我要/i, /安排/i],
+  delete: [/删除/i, /去掉/i, /取消/i, /移除/i, /删掉/i, /不要/i],
+  update: [/改到/i, /改成/i, /改到/i, /修改/i, /更新/i, /调整/i],
+  query: [/查看/i, /看看/i, /有什么/i, /显示/i, /查一下/i, /什么安排/i]
+}
+
+function extractFuzzyTime(text) {
+  for (const [word, value] of Object.entries(FUZZY_TIME_WORDS)) {
+    if (text.includes(word)) {
+      return { type: 'fuzzy', ...value }
+    }
+  }
+  return null
+}
+
+function extractReminderMinutes(text) {
+  for (const { pattern, valueIndex, unit, value } of REMINDER_PATTERNS) {
+    const match = text.match(pattern)
+    if (match) {
+      let reminderValue = value || parseInt(match[valueIndex])
+      if (unit === 'hour') {
+        reminderValue *= 60
+      }
+      return reminderValue
+    }
+  }
+  return null
+}
+
+function extractRelativeTime(text) {
+  for (const { pattern, type, unit, value } of RELATIVE_TIME_PATTERNS) {
+    const match = text.match(pattern)
+    if (match) {
+      return {
+        type: type,
+        unit: unit,
+        value: value || parseInt(match[1])
+      }
+    }
+  }
+  return null
+}
+
+function extractAbsoluteTime(text) {
+  for (const { pattern, type, isHalf } of ABSOLUTE_TIME_PATTERNS) {
+    const match = text.match(pattern)
+    if (match) {
+      const result = { type: type }
+
+      if (match[1]) {
+        if (TIME_PERIODS[match[1]]) {
+          result.period = match[1]
+          result.hour = TIME_PERIODS[match[1]].hour
+          if (match[2]) {
+            result.hour = parseInt(match[2])
+            if (result.period === '下午' && result.hour < 12) {
+              result.hour += 12
+            } else if (result.period === '晚上' && result.hour <= 12) {
+              result.hour += 12
+            }
+          }
+          result.minute = match[3] ? parseInt(match[3]) : 0
+        } else if (!isNaN(parseInt(match[1]))) {
+          result.hour = parseInt(match[1])
+          result.minute = isHalf ? 30 : (match[2] ? parseInt(match[2]) : 0)
+        } else {
+          result.dayOfWeek = match[1]
+        }
+      }
+
+      if (match[2] && !result.hour && !isNaN(parseInt(match[2]))) {
+        result.hour = parseInt(match[2])
+        result.minute = match[3] ? parseInt(match[3]) : 0
+      } else if (match[3] && !result.minute && !isNaN(parseInt(match[3]))) {
+        result.minute = parseInt(match[3])
+      }
+
+      if (match[4] && !result.hour && !isNaN(parseInt(match[4]))) {
+        let h = parseInt(match[4])
+        if (result.period === '下午' && h < 12) h += 12
+        else if (result.period === '晚上' && h <= 12) h += 12
+        result.hour = h
+        result.minute = match[5] ? parseInt(match[5]) : 0
+      }
+
+      return result
+    }
+  }
+  return null
 }
 
 export function parseVoiceCommand(text) {
@@ -39,7 +178,10 @@ export function parseVoiceCommand(text) {
       date: null,
       time: null,
       category: null,
-      duration: null
+      duration: null,
+      relativeMinutes: null,
+      period: null,
+      reminderMinutes: null
     },
     confidence: 0.8
   }
@@ -62,98 +204,152 @@ export function parseVoiceCommand(text) {
     }
   }
 
-  for (const { pattern, type } of TIME_PATTERNS) {
-    const match = text.match(pattern)
-    if (match) {
-      result.entities.date = type
-      if (match[1]) {
-        result.entities.time = {
-          hour: parseInt(match[1]),
-          minute: match[2] ? parseInt(match[2]) : 0
-        }
-      }
-      break
-    }
+  const reminderMinutes = extractReminderMinutes(text)
+  if (reminderMinutes !== null) {
+    result.entities.reminderMinutes = reminderMinutes
   }
 
-  const titleMatch = text.match(/([^于到在把].*?)(?:在|于|提醒|$)/)
+  const fuzzyTime = extractFuzzyTime(text)
+  if (fuzzyTime) {
+    result.entities.date = 'relative'
+    result.entities.relativeMinutes = fuzzyTime.minutes
+    result.confidence = 0.9
+    return result
+  }
+
+  const relativeTime = extractRelativeTime(text)
+  if (relativeTime) {
+    result.entities.date = 'relative'
+    result.entities.time = {
+      unit: relativeTime.unit,
+      value: relativeTime.value
+    }
+    result.confidence = 0.85
+    return result
+  }
+
+  const absoluteTime = extractAbsoluteTime(text)
+  if (absoluteTime) {
+    result.entities.date = absoluteTime.type
+    if (absoluteTime.hour !== undefined) {
+      result.entities.time = {
+        hour: absoluteTime.hour,
+        minute: absoluteTime.minute || 0
+      }
+    }
+    if (absoluteTime.period) {
+      result.entities.period = absoluteTime.period
+    }
+    if (absoluteTime.dayOfWeek) {
+      result.entities.dayOfWeek = absoluteTime.dayOfWeek
+    }
+    result.confidence = 0.95
+  }
+
+  const titleMatch = text.match(/([^于到在把要安排提醒].*?)(?:在|于|提醒|安排|设置|$)/)
   if (titleMatch) {
-    result.entities.title = titleMatch[1].trim()
+    result.entities.title = titleMatch[1].trim().replace(/[，,。！!？?]$/, '')
+  }
+
+  if (!result.entities.title) {
+    const titleMatch2 = text.match(/(提醒我|帮我记|我要).*?(做|参加|去|有|开始)(.*)/)
+    if (titleMatch2 && titleMatch2[3]) {
+      result.entities.title = titleMatch2[3].trim().replace(/[，,。！!？?]$/, '')
+    }
   }
 
   return result
 }
 
 export function resolveEventFromCommand(command, baseDate = new Date()) {
+  const now = new Date(baseDate)
+
   const event = {
     title: command.entities.title || '新事件',
-    startTime: new Date(),
-    endTime: new Date(),
+    startTime: new Date(now),
+    endTime: new Date(now),
     isAllDay: false,
     category: command.entities.category || 'life',
-    reminder: 15,
+    reminder: command.entities.reminderMinutes || 5,
     repeat: 'none',
     note: ''
   }
 
+  if (command.entities.relativeMinutes !== null && command.entities.relativeMinutes !== undefined) {
+    event.startTime = new Date(now.getTime() + command.entities.relativeMinutes * 60 * 1000)
+    event.endTime = new Date(event.startTime.getTime() + 60 * 60 * 1000)
+    return event
+  }
+
+  if (command.entities.date === 'relative' && command.entities.time) {
+    const { unit, value } = command.entities.time
+    let ms = 0
+    switch (unit) {
+      case 'minute':
+        ms = value * 60 * 1000
+        break
+      case 'hour':
+        ms = value * 60 * 60 * 1000
+        break
+      case 'day':
+        ms = value * 24 * 60 * 60 * 1000
+        break
+    }
+    event.startTime = new Date(now.getTime() + ms)
+    event.endTime = new Date(event.startTime.getTime() + 60 * 60 * 1000)
+    return event
+  }
+
   if (!command.entities.date) {
-    event.startTime = new Date(baseDate)
-    event.endTime = new Date(baseDate)
     event.isAllDay = true
     return event
   }
 
-  const now = new Date(baseDate)
-
   switch (command.entities.date) {
     case 'today':
-      event.startTime = now
-      event.endTime = new Date(now.getTime() + 60 * 60 * 1000)
+      event.startTime = new Date(now)
       break
     case 'tomorrow':
-      event.startTime = new Date(now.setDate(now.getDate() + 1))
-      event.endTime = new Date(event.startTime.getTime() + 60 * 60 * 1000)
+      event.startTime = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1)
       break
     case 'dayAfter':
-      event.startTime = new Date(now.setDate(now.getDate() + 2))
-      event.endTime = new Date(event.startTime.getTime() + 60 * 60 * 1000)
+      event.startTime = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 2)
       break
-    case 'nextMonday':
-    case 'nextTuesday':
-    case 'nextWednesday':
-    case 'nextThursday':
-    case 'nextFriday':
-    case 'nextSaturday':
-    case 'nextSunday':
-      const dayMap = {
-        nextMonday: 1, nextTuesday: 2, nextWednesday: 3,
-        nextThursday: 4, nextFriday: 5, nextSaturday: 6, nextSunday: 0
-      }
-      const targetDay = dayMap[command.entities.date]
-      const currentDay = now.getDay()
-      let daysUntil = targetDay - currentDay
-      if (daysUntil <= 0) daysUntil += 7
-      event.startTime = new Date(now.setDate(now.getDate() + daysUntil))
-      event.endTime = new Date(event.startTime.getTime() + 60 * 60 * 1000)
+    case 'thisWeek':
+      event.startTime = new Date(now)
+      event.isAllDay = true
+      break
+    case 'nextWeek':
+      const daysUntilNextWeek = 7 - now.getDay() + 1
+      event.startTime = new Date(now.getFullYear(), now.getMonth(), now.getDate() + daysUntilNextWeek)
+      event.isAllDay = true
       break
     case 'monthDay':
       const month = parseInt(command.entities.time?.hour || now.getMonth() + 1) - 1
       const day = parseInt(command.entities.time?.minute || now.getDate())
       event.startTime = new Date(now.getFullYear(), month, day)
-      event.endTime = new Date(event.startTime.getTime() + 60 * 60 * 1000)
       break
     case 'dayOfMonth':
       event.startTime = new Date(now.getFullYear(), now.getMonth(), parseInt(command.entities.time?.hour || now.getDate()))
-      event.endTime = new Date(event.startTime.getTime() + 60 * 60 * 1000)
+      break
+    case 'todayTime':
+      event.startTime = new Date(now)
+      break
+    case 'periodTime':
+      event.startTime = new Date(now)
       break
     default:
-      event.startTime = now
-      event.endTime = new Date(event.startTime.getTime() + 60 * 60 * 1000)
+      event.startTime = new Date(now)
   }
 
   if (command.entities.time) {
     event.startTime.setHours(command.entities.time.hour, command.entities.time.minute || 0, 0, 0)
     event.endTime = new Date(event.startTime.getTime() + 60 * 60 * 1000)
+  } else if (command.entities.period && TIME_PERIODS[command.entities.period]) {
+    event.startTime.setHours(TIME_PERIODS[command.entities.period].hour, 0, 0, 0)
+    event.endTime = new Date(event.startTime.getTime() + 60 * 60 * 1000)
+  } else if (command.entities.date !== 'thisWeek' && command.entities.date !== 'nextWeek') {
+    event.isAllDay = true
   }
 
   return event
@@ -169,5 +365,7 @@ export function formatEventForSpeech(event) {
     ? '全天'
     : event.startTime.toLocaleTimeString('zh-CN', { hour: 'numeric', minute: '2-digit' })
 
-  return `已添加：${event.title}，${dateStr}，${timeStr}`
+  const reminderStr = event.reminder ? `，提前${event.reminder}分钟提醒` : ''
+
+  return `已添加：${event.title}，${dateStr}，${timeStr}${reminderStr}`
 }

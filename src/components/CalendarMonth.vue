@@ -1,10 +1,31 @@
 <script setup>
-import { computed } from "vue";
+import { ref, computed, onMounted, onUnmounted } from "vue";
 import { useEventStore } from "../stores/eventStore";
 import CalendarHeader from "./CalendarHeader.vue";
 import EventList from "./EventList.vue";
 
 const eventStore = useEventStore();
+
+const currentTime = ref(new Date());
+let timer = null;
+
+onMounted(() => {
+  timer = setInterval(() => {
+    currentTime.value = new Date();
+  }, 1000);
+});
+
+onUnmounted(() => {
+  if (timer) {
+    clearInterval(timer);
+  }
+});
+
+const currentTimeString = computed(() => {
+  const hours = currentTime.value.getHours().toString().padStart(2, "0");
+  const minutes = currentTime.value.getMinutes().toString().padStart(2, "0");
+  return `${hours}:${minutes}`;
+});
 
 const calendarDays = computed(() => {
   const year = eventStore.currentDate.getFullYear();
@@ -27,9 +48,14 @@ const calendarDays = computed(() => {
   }
 
   const today = new Date();
+  const currentYear = today.getFullYear();
+  const currentMonth = today.getMonth();
+  const currentDay = today.getDate();
+  const isCurrentMonth = year === currentYear && month === currentMonth;
+
   for (let i = 1; i <= totalDays; i++) {
     const date = new Date(year, month, i);
-    const isToday = date.toDateString() === today.toDateString();
+    const isToday = isCurrentMonth && i === currentDay;
     const isSelected =
       eventStore.selectedDate &&
       date.toDateString() === eventStore.selectedDate.toDateString();
@@ -66,6 +92,17 @@ function handleSelectDate(date) {
 
 <template>
   <div class="calendar-month">
+    <div class="current-time-bar">
+      <span class="time-icon">🕐</span>
+      <span class="time-string">{{ currentTimeString }}</span>
+      <span class="time-date">{{
+        currentTime.toLocaleDateString("zh-CN", {
+          weekday: "long",
+          month: "long",
+          day: "numeric",
+        })
+      }}</span>
+    </div>
     <CalendarHeader />
     <div class="days-grid">
       <div
@@ -79,7 +116,12 @@ function handleSelectDate(date) {
         }"
         @click="handleSelectDate(day.date)"
       >
-        <span class="day-number">{{ day.date.getDate() }}</span>
+        <div class="day-header">
+          <span class="day-number">{{ day.date.getDate() }}</span>
+          <span v-if="day.isToday" class="today-time">{{
+            currentTimeString
+          }}</span>
+        </div>
         <div class="day-events">
           <div
             v-for="event in getEventsForDate(day.date).slice(0, 2)"
@@ -107,6 +149,49 @@ function handleSelectDate(date) {
   padding: $spacing-md;
 }
 
+.current-time-bar {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  padding: $spacing-sm $spacing-md;
+  background: linear-gradient(135deg, #fff9e6 0%, #ffe4c4 100%);
+  border: 3px solid #d4a574;
+  border-radius: 12px;
+  margin-bottom: $spacing-md;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+
+  .time-icon {
+    font-size: 1.25rem;
+    animation: pulse 2s infinite;
+  }
+
+  .time-string {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #ff6b6b;
+    font-family: "Comic Sans MS", cursive, sans-serif;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
+    min-width: 4.5rem;
+  }
+
+  .time-date {
+    font-size: $font-size-sm;
+    color: #8b7355;
+    font-family: "Comic Sans MS", cursive, sans-serif;
+    margin-left: auto;
+  }
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+}
+
 .days-grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
@@ -117,15 +202,15 @@ function handleSelectDate(date) {
 .day-cell {
   min-height: 4.5rem;
   padding: $spacing-xs;
-  background: rgba(255,254,240,0.8);
+  background: rgba(255, 254, 240, 0.8);
   border-radius: 4px;
   cursor: pointer;
   transition: all $transition-fast;
   border: 2px solid #d4a574;
   position: relative;
-  
+
   &::before {
-    content: '';
+    content: "";
     position: absolute;
     top: 0;
     left: 0;
@@ -143,12 +228,12 @@ function handleSelectDate(date) {
   &:hover {
     background: #fff9e6;
     transform: scale(1.02);
-    box-shadow: 2px 2px 8px rgba(0,0,0,0.1);
+    box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.1);
   }
 
   &.other-month {
-    background: rgba(255,248,230,0.5);
-    
+    background: rgba(255, 248, 230, 0.5);
+
     .day-number {
       color: #b0b0b0;
       opacity: 0.6;
@@ -156,9 +241,13 @@ function handleSelectDate(date) {
   }
 
   &.is-today {
-    background: #fff8dc;
+    background: linear-gradient(135deg, #fff8dc 0%, #ffe4b5 100%);
     border-color: #ff6b6b;
-    
+    border-width: 3px;
+    box-shadow:
+      0 4px 12px rgba(255, 107, 107, 0.3),
+      inset 0 0 20px rgba(255, 107, 107, 0.1);
+
     .day-number {
       background: linear-gradient(135deg, #ff6b6b 0%, #ff8e8e 100%);
       color: white;
@@ -168,24 +257,76 @@ function handleSelectDate(date) {
       display: flex;
       align-items: center;
       justify-content: center;
-      box-shadow: 0 2px 8px rgba(255,107,107,0.4);
+      box-shadow: 0 2px 8px rgba(255, 107, 107, 0.4);
+    }
+
+    &::after {
+      content: "";
+      position: absolute;
+      top: -1px;
+      left: -1px;
+      right: -1px;
+      bottom: -1px;
+      border-radius: 6px;
+      background: linear-gradient(135deg, #ff6b6b 0%, #ff8e8e 100%);
+      z-index: -1;
+      opacity: 0.3;
+      filter: blur(8px);
+      animation: glowPulse 2s infinite;
     }
   }
 
   &.is-selected {
     background: #fffacd;
     border-color: #ffb347;
-    box-shadow: inset 0 0 15px rgba(255,179,71,0.2);
+    box-shadow: inset 0 0 15px rgba(255, 179, 71, 0.2);
   }
+}
+
+@keyframes glowPulse {
+  0%,
+  100% {
+    opacity: 0.2;
+  }
+  50% {
+    opacity: 0.4;
+  }
+}
+
+.day-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: $spacing-xs;
 }
 
 .day-number {
   font-size: 0.9rem;
   font-weight: 700;
   color: #5d4e37;
-  margin-bottom: $spacing-xs;
-  font-family: 'Comic Sans MS', cursive, sans-serif;
-  text-shadow: 0.5px 0.5px 0 rgba(0,0,0,0.1);
+  font-family: "Comic Sans MS", cursive, sans-serif;
+  text-shadow: 0.5px 0.5px 0 rgba(0, 0, 0, 0.1);
+}
+
+.today-time {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: #ff6b6b;
+  font-family: "Comic Sans MS", cursive, sans-serif;
+  background: rgba(255, 107, 107, 0.1);
+  padding: 2px 4px;
+  border-radius: 4px;
+  animation: blink 1s infinite;
+}
+
+@keyframes blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
 }
 
 .day-events {
@@ -202,8 +343,8 @@ function handleSelectDate(date) {
   overflow: hidden;
   text-overflow: ellipsis;
   color: white;
-  font-family: 'Comic Sans MS', cursive, sans-serif;
-  box-shadow: 1px 1px 3px rgba(0,0,0,0.15);
+  font-family: "Comic Sans MS", cursive, sans-serif;
+  box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.15);
 
   &.category-work {
     background: linear-gradient(135deg, #8b7399 0%, #9b84aa 100%);
