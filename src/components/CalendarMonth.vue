@@ -36,18 +36,16 @@ const calendarDays = computed(() => {
   const totalDays = lastDay.getDate();
 
   const days = [];
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const todayTime = today.getTime();
 
   for (let i = 0; i < startPadding; i++) {
-    const prevDate = new Date(year, month, -startPadding + i + 1);
     days.push({
-      date: prevDate,
-      isCurrentMonth: false,
-      isToday: false,
-      isSelected: false,
+      isEmpty: true,
     });
   }
 
-  const today = new Date();
   const currentYear = today.getFullYear();
   const currentMonth = today.getMonth();
   const currentDay = today.getDate();
@@ -55,26 +53,20 @@ const calendarDays = computed(() => {
 
   for (let i = 1; i <= totalDays; i++) {
     const date = new Date(year, month, i);
+    date.setHours(0, 0, 0, 0);
+    const dateTime = date.getTime();
     const isToday = isCurrentMonth && i === currentDay;
+    const isPast = dateTime < todayTime;
     const isSelected =
       eventStore.selectedDate &&
       date.toDateString() === eventStore.selectedDate.toDateString();
     days.push({
       date,
+      isEmpty: false,
       isCurrentMonth: true,
       isToday,
+      isPast,
       isSelected,
-    });
-  }
-
-  const remaining = 42 - days.length;
-  for (let i = 1; i <= remaining; i++) {
-    const nextDate = new Date(year, month + 1, i);
-    days.push({
-      date: nextDate,
-      isCurrentMonth: false,
-      isToday: false,
-      isSelected: false,
     });
   }
 
@@ -86,6 +78,14 @@ function getEventsForDate(date) {
 }
 
 function handleSelectDate(date) {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const dateTime = new Date(date);
+  dateTime.setHours(0, 0, 0, 0);
+
+  if (dateTime.getTime() < today.getTime()) {
+    return;
+  }
   eventStore.setSelectedDate(date);
 }
 </script>
@@ -110,19 +110,20 @@ function handleSelectDate(date) {
         :key="index"
         class="day-cell"
         :class="{
-          'other-month': !day.isCurrentMonth,
+          'is-empty': day.isEmpty,
           'is-today': day.isToday,
           'is-selected': day.isSelected,
+          'is-past': day.isPast && !day.isToday,
         }"
-        @click="handleSelectDate(day.date)"
+        @click="day.isEmpty || handleSelectDate(day.date)"
       >
-        <div class="day-header">
+        <div v-if="!day.isEmpty" class="day-header">
           <span class="day-number">{{ day.date.getDate() }}</span>
           <span v-if="day.isToday" class="today-time">{{
             currentTimeString
           }}</span>
         </div>
-        <div class="day-events">
+        <div v-if="!day.isEmpty" class="day-events">
           <div
             v-for="event in getEventsForDate(day.date).slice(0, 2)"
             :key="event.id"
@@ -231,12 +232,36 @@ function handleSelectDate(date) {
     box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.1);
   }
 
-  &.other-month {
-    background: rgba(255, 248, 230, 0.5);
+  &.is-empty {
+    background: transparent;
+    border: none;
+    cursor: default;
+
+    &:hover {
+      transform: none;
+      box-shadow: none;
+      background: transparent;
+    }
+  }
+
+  &.is-past {
+    background: rgba(240, 240, 240, 0.6);
+    border-color: #d0d0d0;
+    cursor: not-allowed;
 
     .day-number {
-      color: #b0b0b0;
-      opacity: 0.6;
+      color: #c0c0c0;
+      text-decoration: line-through;
+    }
+
+    &:hover {
+      transform: none;
+      box-shadow: none;
+      background: rgba(240, 240, 240, 0.6);
+    }
+
+    .day-events {
+      opacity: 0.4;
     }
   }
 
@@ -247,6 +272,7 @@ function handleSelectDate(date) {
     box-shadow:
       0 4px 12px rgba(255, 107, 107, 0.3),
       inset 0 0 20px rgba(255, 107, 107, 0.1);
+    cursor: pointer;
 
     .day-number {
       background: linear-gradient(135deg, #ff6b6b 0%, #ff8e8e 100%);
@@ -258,6 +284,7 @@ function handleSelectDate(date) {
       align-items: center;
       justify-content: center;
       box-shadow: 0 2px 8px rgba(255, 107, 107, 0.4);
+      text-decoration: none;
     }
 
     &::after {
