@@ -1,11 +1,15 @@
 <script setup>
-import { ref, computed } from "vue";
+import { ref, computed, onMounted } from "vue";
 import { useEventStore } from "../stores/eventStore";
 import CalendarMonth from "../components/CalendarMonth.vue";
 import VoiceAssistant from "../components/VoiceAssistant.vue";
 import PageFlipButton from "../components/PageFlipButton.vue";
 
 const eventStore = useEventStore();
+
+onMounted(() => {
+  eventStore.fetchEvents();
+});
 
 const isFlipping = ref(false);
 const flipDirection = ref("next");

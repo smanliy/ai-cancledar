@@ -1,53 +1,37 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 
-export const useEventStore = defineStore('event', () => {
-  const events = ref([
-    {
-      id: '1',
-      title: '团队周会',
-      startTime: new Date(new Date().setHours(10, 0, 0, 0)),
-      endTime: new Date(new Date().setHours(11, 0, 0, 0)),
-      isAllDay: false,
-      category: 'work',
-      reminder: 15,
-      reminderEmail: '',
-      repeat: 'weekly',
-      note: '讨论项目进度',
-      createdAt: new Date(),
-      updatedAt: new Date()
-    },
-    {
-      id: '2',
-      title: '健身',
-      startTime: new Date(new Date().setDate(new Date().getDate() + 1)),
-      isAllDay: false,
-      category: 'health',
-      reminder: 30,
-      reminderEmail: '',
-      repeat: 'none',
-      note: '',
-      createdAt: new Date(),
-      updatedAt: new Date()
-    },
-    {
-      id: '3',
-      title: '妈妈生日',
-      startTime: new Date(new Date().getFullYear(), new Date().getMonth(), new Date().getDate() + 5),
-      isAllDay: true,
-      category: 'life',
-      reminder: 1440,
-      reminderEmail: '',
-      repeat: 'yearly',
-      note: '别忘了买蛋糕',
-      createdAt: new Date(),
-      updatedAt: new Date()
-    }
-  ])
+const API_BASE = 'http://localhost:3001/api'
 
+export const useEventStore = defineStore('event', () => {
+  const events = ref([])
   const currentDate = ref(new Date())
   const selectedDate = ref(new Date())
   const viewMode = ref('month')
+  const isLoading = ref(false)
+  const error = ref(null)
+
+  async function fetchEvents() {
+    isLoading.value = true
+    error.value = null
+    try {
+      const response = await fetch(`${API_BASE}/events`)
+      if (!response.ok) throw new Error('获取事件失败')
+      const data = await response.json()
+      events.value = data.map(event => ({
+        ...event,
+        startTime: new Date(event.startTime),
+        endTime: event.endTime ? new Date(event.endTime) : null,
+        createdAt: new Date(event.createdAt),
+        updatedAt: new Date(event.updatedAt)
+      }))
+    } catch (err) {
+      console.error('获取事件失败:', err)
+      error.value = err.message
+    } finally {
+      isLoading.value = false
+    }
+  }
 
   const currentMonthEvents = computed(() => {
     const year = currentDate.value.getFullYear()
@@ -74,37 +58,79 @@ export const useEventStore = defineStore('event', () => {
     })
   }
 
-  function addEvent(eventData) {
-    const newEvent = {
-      id: Date.now().toString(),
-      ...eventData,
-      createdAt: new Date(),
-      updatedAt: new Date()
-    }
-    events.value.push(newEvent)
-    return newEvent
-  }
-
-  function updateEvent(id, eventData) {
-    const index = events.value.findIndex(e => e.id === id)
-    if (index !== -1) {
-      events.value[index] = {
-        ...events.value[index],
-        ...eventData,
-        updatedAt: new Date()
+  async function addEvent(eventData) {
+    try {
+      const response = await fetch(`${API_BASE}/events`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(eventData)
+      })
+      if (!response.ok) throw new Error('创建事件失败')
+      const newEvent = await response.json()
+      const eventWithDates = {
+        ...newEvent,
+        startTime: new Date(newEvent.startTime),
+        endTime: newEvent.endTime ? new Date(newEvent.endTime) : null,
+        createdAt: new Date(newEvent.createdAt),
+        updatedAt: new Date(newEvent.updatedAt)
       }
-      return events.value[index]
+      events.value.push(eventWithDates)
+      return eventWithDates
+    } catch (err) {
+      console.error('创建事件失败:', err)
+      error.value = err.message
+      throw err
     }
-    return null
   }
 
-  function deleteEvent(id) {
-    const index = events.value.findIndex(e => e.id === id)
-    if (index !== -1) {
-      events.value.splice(index, 1)
-      return true
+  async function updateEvent(id, eventData) {
+    try {
+      const response = await fetch(`${API_BASE}/events/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(eventData)
+      })
+      if (!response.ok) throw new Error('更新事件失败')
+      const updatedEvent = await response.json()
+      const eventWithDates = {
+        ...updatedEvent,
+        startTime: new Date(updatedEvent.startTime),
+        endTime: updatedEvent.endTime ? new Date(updatedEvent.endTime) : null,
+        createdAt: new Date(updatedEvent.createdAt),
+        updatedAt: new Date(updatedEvent.updatedAt)
+      }
+      const index = events.value.findIndex(e => e.id === id)
+      if (index !== -1) {
+        events.value[index] = eventWithDates
+      }
+      return eventWithDates
+    } catch (err) {
+      console.error('更新事件失败:', err)
+      error.value = err.message
+      throw err
     }
-    return false
+  }
+
+  async function deleteEvent(id) {
+    try {
+      const response = await fetch(`${API_BASE}/events/${id}`, {
+        method: 'DELETE'
+      })
+      if (!response.ok) throw new Error('删除事件失败')
+      const index = events.value.findIndex(e => e.id === id)
+      if (index !== -1) {
+        events.value.splice(index, 1)
+      }
+      return true
+    } catch (err) {
+      console.error('删除事件失败:', err)
+      error.value = err.message
+      throw err
+    }
   }
 
   function getEventById(id) {
@@ -140,8 +166,11 @@ export const useEventStore = defineStore('event', () => {
     currentDate,
     selectedDate,
     viewMode,
+    isLoading,
+    error,
     currentMonthEvents,
     selectedDateEvents,
+    fetchEvents,
     getEventsByDate,
     addEvent,
     updateEvent,

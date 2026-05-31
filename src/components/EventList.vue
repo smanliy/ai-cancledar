@@ -19,8 +19,8 @@ function handleEventClick(event) {
   router.push(`/event/${event.id}`);
 }
 
-function handleDeleteEvent(eventId) {
-  eventStore.deleteEvent(eventId);
+async function handleDeleteEvent(eventId) {
+  await eventStore.deleteEvent(eventId);
 }
 
 const categoryLabels = {

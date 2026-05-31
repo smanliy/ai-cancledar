@@ -1,109 +1,114 @@
 <script setup>
-import { ref } from 'vue'
-import { parseVoiceCommand, resolveEventFromCommand, formatEventForSpeech } from '../utils/voiceParser'
-import { useEventStore } from '../stores/eventStore'
+import { ref } from "vue";
+import {
+  parseVoiceCommand,
+  resolveEventFromCommand,
+  formatEventForSpeech,
+} from "../utils/voiceParser";
+import { useEventStore } from "../stores/eventStore";
 
 defineProps({
   visible: {
     type: Boolean,
-    default: false
-  }
-})
+    default: false,
+  },
+});
 
-const emit = defineEmits(['close', 'command'])
+const emit = defineEmits(["close", "command"]);
 
-const eventStore = useEventStore()
+const eventStore = useEventStore();
 
-const isListening = ref(false)
-const transcript = ref('')
-const feedback = ref('')
-const recognition = ref(null)
+const isListening = ref(false);
+const transcript = ref("");
+const feedback = ref("");
+const recognition = ref(null);
 
 function initRecognition() {
-  if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
-    recognition.value = new SpeechRecognition()
-    recognition.value.continuous = false
-    recognition.value.interimResults = true
-    recognition.value.lang = 'zh-CN'
+  if ("webkitSpeechRecognition" in window || "SpeechRecognition" in window) {
+    const SpeechRecognition =
+      window.SpeechRecognition || window.webkitSpeechRecognition;
+    recognition.value = new SpeechRecognition();
+    recognition.value.continuous = false;
+    recognition.value.interimResults = true;
+    recognition.value.lang = "zh-CN";
 
     recognition.value.onresult = (event) => {
-      const result = event.results[event.results.length - 1]
-      transcript.value = result[0].transcript
+      const result = event.results[event.results.length - 1];
+      transcript.value = result[0].transcript;
       if (result.isFinal) {
-        processVoiceInput(transcript.value)
+        processVoiceInput(transcript.value);
       }
-    }
+    };
 
     recognition.value.onerror = (event) => {
-      console.error('Speech recognition error:', event.error)
-      isListening.value = false
-      feedback.value = '语音识别出错，请重试'
-    }
+      console.error("Speech recognition error:", event.error);
+      isListening.value = false;
+      feedback.value = "语音识别出错，请重试";
+    };
 
     recognition.value.onend = () => {
-      isListening.value = false
-    }
+      isListening.value = false;
+    };
   } else {
-    feedback.value = '当前浏览器不支持语音识别'
+    feedback.value = "当前浏览器不支持语音识别";
   }
 }
 
 function startListening() {
   if (!recognition.value) {
-    initRecognition()
+    initRecognition();
   }
   if (recognition.value) {
-    transcript.value = ''
-    feedback.value = ''
-    isListening.value = true
-    recognition.value.start()
+    transcript.value = "";
+    feedback.value = "";
+    isListening.value = true;
+    recognition.value.start();
   }
 }
 
 function stopListening() {
   if (recognition.value) {
-    recognition.value.stop()
-    isListening.value = false
+    recognition.value.stop();
+    isListening.value = false;
   }
 }
 
-function processVoiceInput(text) {
-  const command = parseVoiceCommand(text)
-  feedback.value = '正在处理...'
+async function processVoiceInput(text) {
+  const command = parseVoiceCommand(text);
+  feedback.value = "正在处理...";
 
-  if (command.action === 'create') {
-    const event = resolveEventFromCommand(command, eventStore.selectedDate)
-    eventStore.addEvent(event)
-    feedback.value = formatEventForSpeech(event)
-  } else if (command.action === 'query') {
-    const dateStr = eventStore.selectedDate.toLocaleDateString('zh-CN')
-    const events = eventStore.selectedDateEvents
+  if (command.action === "create") {
+    const event = resolveEventFromCommand(command, eventStore.selectedDate);
+    await eventStore.addEvent(event);
+    feedback.value = formatEventForSpeech(event);
+  } else if (command.action === "query") {
+    const dateStr = eventStore.selectedDate.toLocaleDateString("zh-CN");
+    const events = eventStore.selectedDateEvents;
     if (events.length > 0) {
-      feedback.value = `${dateStr}有${events.length}个事件：${events.map(e => e.title).join('、')}`
+      feedback.value = `${dateStr}有${events.length}个事件：${events.map((e) => e.title).join("、")}`;
     } else {
-      feedback.value = `${dateStr}没有事件`
+      feedback.value = `${dateStr}没有事件`;
     }
-  } else if (command.action === 'delete') {
-    feedback.value = '请说 要删除的事件名称'
+  } else if (command.action === "delete") {
+    feedback.value = "请说 要删除的事件名称";
   } else {
-    feedback.value = '抱歉，我还理解这个命令'
+    feedback.value = "抱歉，我还理解这个命令";
   }
 
-  emit('command', command)
+  emit("command", command);
 }
 
 function handleClose() {
-  stopListening()
-  emit('close')
+  stopListening();
+  emit("close");
 }
 
 function speakFeedback() {
-  if ('speechSynthesis' in window && feedback.value) {
-    const utterance = new SpeechSynthesisUtterance(feedback.value)
-    utterance.lang = 'zh-CN'
-    utterance.rate = 1.0
-    speechSynthesis.speak(utterance)
+  if ("speechSynthesis" in window && feedback.value) {
+    const utterance = new SpeechSynthesisUtterance(feedback.value);
+    utterance.lang = "zh-CN";
+    utterance.rate = 1.0;
+    speechSynthesis.speak(utterance);
   }
 }
 </script>
@@ -119,7 +124,7 @@ function speakFeedback() {
 
         <div class="voice-content">
           <div class="assistant-avatar" :class="{ listening: isListening }">
-            <span class="avatar-icon">{{ isListening ? '🎙️' : '🤖' }}</span>
+            <span class="avatar-icon">{{ isListening ? "🎙️" : "🤖" }}</span>
           </div>
 
           <div class="transcript-box">
@@ -129,7 +134,9 @@ function speakFeedback() {
 
           <div v-if="feedback" class="feedback-box">
             <p>{{ feedback }}</p>
-            <button v-if="feedback" class="btn-speak" @click="speakFeedback">🔊 播放</button>
+            <button v-if="feedback" class="btn-speak" @click="speakFeedback">
+              🔊 播放
+            </button>
           </div>
         </div>
 
@@ -141,8 +148,10 @@ function speakFeedback() {
             @mouseup="stopListening"
             @mouseleave="stopListening"
           >
-            <span class="mic-icon">{{ isListening ? '🔴' : '🎤' }}</span>
-            <span class="mic-text">{{ isListening ? '松开结束' : '按住说话' }}</span>
+            <span class="mic-icon">{{ isListening ? "🔴" : "🎤" }}</span>
+            <span class="mic-text">{{
+              isListening ? "松开结束" : "按住说话"
+            }}</span>
           </button>
         </div>
 
@@ -155,7 +164,7 @@ function speakFeedback() {
 </template>
 
 <style scoped lang="scss">
-@use '../styles/variables' as *;
+@use "../styles/variables" as *;
 
 .voice-overlay {
   position: fixed;
@@ -197,7 +206,11 @@ function speakFeedback() {
   justify-content: space-between;
   align-items: center;
   padding: $spacing-md $spacing-lg;
-  background: linear-gradient(135deg, $color-primary 0%, $color-primary-dark 100%);
+  background: linear-gradient(
+    135deg,
+    $color-primary 0%,
+    $color-primary-dark 100%
+  );
   color: white;
 
   h3 {
@@ -235,7 +248,11 @@ function speakFeedback() {
 .assistant-avatar {
   width: 4rem;
   height: 4rem;
-  background: linear-gradient(135deg, $color-secondary-light 0%, $color-secondary 100%);
+  background: linear-gradient(
+    135deg,
+    $color-secondary-light 0%,
+    $color-secondary 100%
+  );
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -245,7 +262,11 @@ function speakFeedback() {
 
   &.listening {
     animation: pulse 1.5s infinite;
-    background: linear-gradient(135deg, $color-primary-light 0%, $color-primary 100%);
+    background: linear-gradient(
+      135deg,
+      $color-primary-light 0%,
+      $color-primary 100%
+    );
   }
 
   .avatar-icon {
@@ -254,7 +275,8 @@ function speakFeedback() {
 }
 
 @keyframes pulse {
-  0%, 100% {
+  0%,
+  100% {
     transform: scale(1);
   }
   50% {
@@ -324,7 +346,11 @@ function speakFeedback() {
   width: 100%;
   padding: $spacing-md;
   border: none;
-  background: linear-gradient(135deg, $color-primary 0%, $color-primary-dark 100%);
+  background: linear-gradient(
+    135deg,
+    $color-primary 0%,
+    $color-primary-dark 100%
+  );
   color: white;
   border-radius: $border-radius-lg;
   font-size: $font-size-base;
@@ -355,7 +381,8 @@ function speakFeedback() {
 }
 
 @keyframes scalePulse {
-  0%, 100% {
+  0%,
+  100% {
     transform: scale(1);
   }
   50% {

@@ -49,9 +49,9 @@ function formatTime(date) {
   return d.toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" });
 }
 
-function handleDelete() {
+async function handleDelete() {
   if (confirm("确定要删除这个事件吗？")) {
-    eventStore.deleteEvent(route.params.id);
+    await eventStore.deleteEvent(route.params.id);
     history.back();
   }
 }
@@ -79,7 +79,9 @@ function handleSendEmail() {
 
 async function handleSaveReminderEmail() {
   if (event) {
-    eventStore.updateEvent(event.id, { reminderEmail: reminderEmail.value });
+    await eventStore.updateEvent(event.id, {
+      reminderEmail: reminderEmail.value,
+    });
     showReminderModal.value = false;
 
     const testResult = await sendTestEmail(reminderEmail.value);
